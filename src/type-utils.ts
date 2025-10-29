@@ -725,3 +725,23 @@ export type DivHex<A extends string, B extends string> =
   IsZeroHex<B> extends true
     ? '0x00'
     : DivisionHelper<NormalizeHex<A> extends '' ? '0x00' : `0x${NormalizeHex<A>}`, NormalizeHex<B> extends '' ? '0x00' : `0x${NormalizeHex<B>}`>;
+
+// Multiplication operation (A * B)
+// Implements repeated addition at type level with optimization for smaller operands
+type MultiplicationHelper<
+  A extends string,
+  B extends string,
+  Result extends string = '0x00',
+  Counter extends unknown[] = []
+> = Counter['length'] extends 256
+  ? Result // Safety limit: prevent infinite recursion
+  : IsZeroHex<B> extends true
+    ? Result // B is 0, return accumulated result
+    : MultiplicationHelper<A, SubHex<B, '0x01'>, AddHex<Result, A>, [...Counter, unknown]>;
+
+export type MulHex<A extends string, B extends string> =
+  IsZeroHex<A> extends true
+    ? '0x00'
+    : IsZeroHex<B> extends true
+      ? '0x00'
+      : MultiplicationHelper<NormalizeHex<A> extends '' ? '0x00' : `0x${NormalizeHex<A>}`, NormalizeHex<B> extends '' ? '0x00' : `0x${NormalizeHex<B>}`>;

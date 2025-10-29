@@ -1,4 +1,4 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex, ModHex, DivHex, MulHex } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex, ModHex, MulHex, DivHex } from './type-utils';
 
 // Opcode maps
 export type PushLenMap = {
@@ -118,6 +118,10 @@ type GasCostFor<Op extends string> =
     : Op extends '16' | '17' | '18' | '19' // AND/OR/XOR/NOT
     ? 3
     : Op extends '30' // ADDRESS
+    ? 3
+    : Op extends '32' | '33' // ORIGIN, CALLER
+    ? 3
+    : Op extends '47' // SELFBALANCE
     ? 3
     : Op extends '34' // CALLVALUE
     ? 3
