@@ -169,10 +169,10 @@ export type T_log2_2_reason = Expect<Equal<R_LOG2_2['reason'], 'stack_underflow'
 export const BC_LOG3_1 = '0x6001600260036004600560096001A3F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; PUSH1 05; PUSH1 09; PUSH1 01; LOG3; RETURN
 export type R_LOG3_1 = ExecuteEvm<typeof BC_LOG3_1>;
 export type T_log3_1_status = Expect<Equal<R_LOG3_1['status'], 'ok'>>;
-export type T_log3_1_ret = Expect<Equal<R_LOG3_1['returnData'], '0x01'>>;
+export type T_log3_1_ret = Expect<Equal<R_LOG3_1['returnData'], '0x02'>>;
 
 // Error: status 'error' reason 'stack_underflow' with <5 items
-export const BC_LOG3_2 = '0x60016002600360046001A3F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; PUSH1 01; LOG3; RETURN (only 4 items)
+export const BC_LOG3_2 = '0x6001600260036004A3F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; LOG3; RETURN (only 4 items, need 5)
 export type R_LOG3_2 = ExecuteEvm<typeof BC_LOG3_2>;
 export type T_log3_2_status = Expect<Equal<R_LOG3_2['status'], 'error'>>;
 export type T_log3_2_reason = Expect<Equal<R_LOG3_2['reason'], 'stack_underflow'>>;
@@ -195,7 +195,7 @@ export type T_log4_2_reason = Expect<Equal<R_LOG4_2['reason'], 'stack_underflow'
 export const BC_LOG0_1 = '0x600160026003A0F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; LOG0; RETURN
 export type R_LOG0_1 = ExecuteEvm<typeof BC_LOG0_1>;
 export type T_log0_1_status = Expect<Equal<R_LOG0_1['status'], 'ok'>>;
-export type T_log0_1_ret = Expect<Equal<R_LOG0_1['returnData'], '0x03'>>;
+export type T_log0_1_ret = Expect<Equal<R_LOG0_1['returnData'], '0x01'>>;
 
 // Error: status 'error' reason 'stack_underflow' with <2 items
 export const BC_LOG0_2 = '0x6001A0F3' as const; // PUSH1 01; LOG0; RETURN (only 1 item)
