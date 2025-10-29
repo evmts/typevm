@@ -1,4 +1,4 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex, ModHex, DivHex } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex, ModHex, DivHex, MulHex } from './type-utils';
 
 // Opcode maps
 export type PushLenMap = {
@@ -118,6 +118,8 @@ type GasCostFor<Op extends string> =
     : Op extends '16' | '17' | '18' | '19' // AND/OR/XOR/NOT
     ? 3
     : Op extends '30' // ADDRESS
+    ? 3
+    : Op extends '34' // CALLVALUE
     ? 3
     : Op extends '38' // CODESIZE
     ? 3
@@ -274,8 +276,8 @@ export type Exec<
     : Op extends '04' // DIV
     ? CanAfford<GasUsed, GasCostFor<'04'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, DivHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'04'>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'04'>, GasLimit>
+        ? Exec<Rest, Push<S2, DivHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'04'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'04'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '06' // MOD
     ? CanAfford<GasUsed, GasCostFor<'06'>, GasLimit> extends true
@@ -352,6 +354,10 @@ export type Exec<
     : Op extends '30' // ADDRESS (no contract context -> 0)
     ? CanAfford<GasUsed, GasCostFor<'30'>, GasLimit> extends true
       ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'30'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '34' // CALLVALUE (no message value -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'34'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'34'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '42' // TIMESTAMP (no block context -> 0)
     ? CanAfford<GasUsed, GasCostFor<'42'>, GasLimit> extends true

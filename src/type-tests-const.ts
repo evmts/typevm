@@ -288,6 +288,12 @@ export type R_ADDRESS_1 = ExecuteEvm<typeof BC_ADDRESS_1>;
 export type T_address_1_status = Expect<Equal<R_ADDRESS_1['status'], 'ok'>>;
 export type T_address_1_ret = Expect<Equal<R_ADDRESS_1['returnData'], '0x00'>>;
 
+// CALLVALUE (0x34) - returns 0 (no message value stub)
+export const BC_CALLVALUE_1 = '0x34F3' as const; // CALLVALUE; RETURN
+export type R_CALLVALUE_1 = ExecuteEvm<typeof BC_CALLVALUE_1>;
+export type T_callvalue_1_status = Expect<Equal<R_CALLVALUE_1['status'], 'ok'>>;
+export type T_callvalue_1_ret = Expect<Equal<R_CALLVALUE_1['returnData'], '0x00'>>;
+
 // MUL (0x02) - multiplication operation
 // Test 1: 3 * 4 = 12 (0x03 * 0x04 = 0x0C)
 export const BC_MUL_1 = '0x6003600402F3' as const; // PUSH1 03; PUSH1 04; MUL; RETURN

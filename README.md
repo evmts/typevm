@@ -99,7 +99,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x31` BALANCE
 - [x] `0x32` ORIGIN (returns 0: stub)
 - [x] `0x33` CALLER (returns 0: stub)
-- [ ] `0x34` CALLVALUE
+- [x] `0x34` CALLVALUE (returns 0: stub)
 - [ ] `0x35` CALLDATALOAD
 - [ ] `0x36` CALLDATASIZE
 - [ ] `0x37` CALLDATACOPY
