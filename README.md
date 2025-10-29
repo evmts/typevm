@@ -92,7 +92,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [x] `0x00` STOP
 - [x] `0x01` ADD
 - [ ] `0x02` MUL
-- [ ] `0x03` SUB
+- [x] `0x03` SUB
 - [ ] `0x04` DIV
 - [ ] `0x05` SDIV
 - [ ] `0x06` MOD
@@ -100,18 +100,18 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x08` ADDMOD
 - [ ] `0x09` MULMOD
 - [ ] `0x0A` EXP
-- [ ] `0x0B` SIGNEXTEND
-- [ ] `0x10` LT
-- [ ] `0x11` GT
-- [ ] `0x12` SLT
-- [ ] `0x13` SGT
+- [x] `0x0B` SIGNEXTEND
+- [x] `0x10` LT
+- [x] `0x11` GT
+- [x] `0x12` SLT
+- [x] `0x13` SGT
 - [x] `0x14` EQ
 - [x] `0x15` ISZERO
-- [ ] `0x16` AND
-- [ ] `0x17` OR
-- [ ] `0x18` XOR
-- [ ] `0x19` NOT
-- [ ] `0x1A` BYTE
+- [x] `0x16` AND
+- [x] `0x17` OR
+- [x] `0x18` XOR
+- [x] `0x19` NOT
+- [x] `0x1A` BYTE
 - [ ] `0x1B` SHL
 - [ ] `0x1C` SHR
 - [ ] `0x1D` SAR
@@ -159,7 +159,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x56` JUMP
 - [ ] `0x57` JUMPI
 - [ ] `0x58` PC
-- [ ] `0x59` MSIZE
+- [x] `0x59` MSIZE
 - [ ] `0x5A` GAS
 - [x] `0x5B` JUMPDEST
 - [ ] `0x5C` TLOAD

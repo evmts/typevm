@@ -62,3 +62,47 @@ export type T_const_12_reason = Expect<Equal<R12['reason'], 'invalid'>>;
 export const BC13 = '0x61F3' as const; // PUSH2 <missing 2 bytes>
 export type R13 = ExecuteEvm<typeof BC13>;
 export type T_const_13_status = Expect<Equal<R13['status'], 'error'>>;
+
+// LT and GT
+export const BC14 = '0x6001600210F3' as const; // 1 < 2 -> 0 (false)
+export const BC15 = '0x6002600110F3' as const; // 1 < 2 -> 1
+export const BC16 = '0x6002600111F3' as const; // 1 > 2 -> 0
+export const BC17 = '0x6001600211F3' as const; // 2 > 1 -> 1
+export type R14 = ExecuteEvm<typeof BC14>;
+export type R15 = ExecuteEvm<typeof BC15>;
+export type R16 = ExecuteEvm<typeof BC16>;
+export type R17 = ExecuteEvm<typeof BC17>;
+export type T_const_14_ret = Expect<Equal<R14['returnData'], '0x00'>>;
+export type T_const_15_ret = Expect<Equal<R15['returnData'], '0x01'>>;
+export type T_const_16b_ret = Expect<Equal<R16['returnData'], '0x00'>>;
+export type T_const_17b_ret = Expect<Equal<R17['returnData'], '0x01'>>;
+
+// (Further opcode tests added incrementally in other files)
+// Sanity: NOT, AND, OR, XOR, BYTE produce ok status
+export const BCS1 = '0x600019F3' as const; // NOT 0
+export type RS1 = ExecuteEvm<typeof BCS1>;
+export type T_sanity_1 = Expect<Equal<RS1['status'], 'ok'>>;
+
+export const BCS2 = '0x60F0600F16F3' as const; // AND
+export type RS2 = ExecuteEvm<typeof BCS2>;
+export type T_sanity_2 = Expect<Equal<RS2['status'], 'ok'>>;
+
+export const BCS3 = '0x60F0600F17F3' as const; // OR
+export type RS3 = ExecuteEvm<typeof BCS3>;
+export type T_sanity_3 = Expect<Equal<RS3['status'], 'ok'>>;
+
+export const BCS4 = '0x60F0600F18F3' as const; // XOR
+export type RS4 = ExecuteEvm<typeof BCS4>;
+export type T_sanity_4 = Expect<Equal<RS4['status'], 'ok'>>;
+
+export const BCS5 = '0x7F00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFFF360001AF3' as const; // BYTE 0
+export type RS5 = ExecuteEvm<typeof BCS5>;
+export type T_sanity_5 = Expect<Equal<RS5['status'], 'ok'>>;
+
+// SIGNEXTEND basic cases
+export const BCS6 = '0x600060800BF3' as const; // signextend(0, 0x80) -> ...FF80
+export type RS6 = ExecuteEvm<typeof BCS6>;
+export type T_sanity_6 = Expect<Equal<RS6['status'], 'ok'>>;
+
+
+// AND/OR/XOR basic cases

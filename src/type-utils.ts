@@ -259,3 +259,295 @@ type AddHexRaw<A extends string, B extends string> =
 // Add two hex values with 0x prefix and wrap to u256
 export type AddHex<A extends string, B extends string> =
   `0x${WrapU256<AddHexRaw<NormalizeHex<A>, NormalizeHex<B>>>}`;
+
+// Bitwise helpers
+export type Bit = 0 | 1;
+
+type BitNot<B extends Bit> = B extends 1 ? 0 : 1;
+type BitAnd<A extends Bit, B extends Bit> = A extends 1 ? (B extends 1 ? 1 : 0) : 0;
+type BitOr<A extends Bit, B extends Bit> = A extends 1 ? 1 : (B extends 1 ? 1 : 0);
+type BitXor<A extends Bit, B extends Bit> = A extends B ? 0 : 1;
+
+// Map hex digit to 4-bit tuple (most-significant bit first)
+type DigitBitsMap = {
+  '0': [0, 0, 0, 0]; '1': [0, 0, 0, 1]; '2': [0, 0, 1, 0]; '3': [0, 0, 1, 1];
+  '4': [0, 1, 0, 0]; '5': [0, 1, 0, 1]; '6': [0, 1, 1, 0]; '7': [0, 1, 1, 1];
+  '8': [1, 0, 0, 0]; '9': [1, 0, 0, 1]; 'A': [1, 0, 1, 0]; 'B': [1, 0, 1, 1];
+  'C': [1, 1, 0, 0]; 'D': [1, 1, 0, 1]; 'E': [1, 1, 1, 0]; 'F': [1, 1, 1, 1];
+};
+
+type BitsToDigitMap = {
+  '[0,0,0,0]': '0'; '[0,0,0,1]': '1'; '[0,0,1,0]': '2'; '[0,0,1,1]': '3';
+  '[0,1,0,0]': '4'; '[0,1,0,1]': '5'; '[0,1,1,0]': '6'; '[0,1,1,1]': '7';
+  '[1,0,0,0]': '8'; '[1,0,0,1]': '9'; '[1,0,1,0]': 'A'; '[1,0,1,1]': 'B';
+  '[1,1,0,0]': 'C'; '[1,1,0,1]': 'D'; '[1,1,1,0]': 'E'; '[1,1,1,1]': 'F';
+};
+
+type BitsToDigit<B extends [Bit, Bit, Bit, Bit]> =
+  B extends [infer b3 extends Bit, infer b2 extends Bit, infer b1 extends Bit, infer b0 extends Bit]
+    ? BitsToDigitMap[`[${b3},${b2},${b1},${b0}]`]
+    : never;
+
+type DigitNot<D extends HexDigit> = BitsToDigit<[
+  BitNot<DigitBitsMap[D][0] & Bit>,
+  BitNot<DigitBitsMap[D][1] & Bit>,
+  BitNot<DigitBitsMap[D][2] & Bit>,
+  BitNot<DigitBitsMap[D][3] & Bit>
+]>;
+
+type DigitAnd<A extends HexDigit, B extends HexDigit> = BitsToDigit<[
+  BitAnd<DigitBitsMap[A][0] & Bit, DigitBitsMap[B][0] & Bit>,
+  BitAnd<DigitBitsMap[A][1] & Bit, DigitBitsMap[B][1] & Bit>,
+  BitAnd<DigitBitsMap[A][2] & Bit, DigitBitsMap[B][2] & Bit>,
+  BitAnd<DigitBitsMap[A][3] & Bit, DigitBitsMap[B][3] & Bit>
+]>;
+
+type DigitOr<A extends HexDigit, B extends HexDigit> = BitsToDigit<[
+  BitOr<DigitBitsMap[A][0] & Bit, DigitBitsMap[B][0] & Bit>,
+  BitOr<DigitBitsMap[A][1] & Bit, DigitBitsMap[B][1] & Bit>,
+  BitOr<DigitBitsMap[A][2] & Bit, DigitBitsMap[B][2] & Bit>,
+  BitOr<DigitBitsMap[A][3] & Bit, DigitBitsMap[B][3] & Bit>
+]>;
+
+type DigitXor<A extends HexDigit, B extends HexDigit> = BitsToDigit<[
+  BitXor<DigitBitsMap[A][0] & Bit, DigitBitsMap[B][0] & Bit>,
+  BitXor<DigitBitsMap[A][1] & Bit, DigitBitsMap[B][1] & Bit>,
+  BitXor<DigitBitsMap[A][2] & Bit, DigitBitsMap[B][2] & Bit>,
+  BitXor<DigitBitsMap[A][3] & Bit, DigitBitsMap[B][3] & Bit>
+]>;
+
+// Map over hex string digits
+type MapHexDigits<S extends string, F extends (d: HexDigit) => string> =
+  S extends `${infer D extends HexDigit}${infer R}`
+    ? `${ReturnType<F & ((d: HexDigit) => string)>}${MapHexDigits<R, F>}`
+    : '';
+
+// Implement NOT for a 64-hex-digit body
+type NotHexBody<S extends string> =
+  S extends `${infer D extends HexDigit}${infer R}`
+    ? `${DigitNot<D>}${NotHexBody<R>}`
+    : '';
+
+// Implement AND/OR/XOR for 64-hex-digit bodies
+type AndHexBody<A extends string, B extends string> =
+  A extends `${infer Da extends HexDigit}${infer Ra}`
+    ? B extends `${infer Db extends HexDigit}${infer Rb}`
+      ? `${DigitAnd<Da, Db>}${AndHexBody<Ra, Rb>}`
+      : ''
+    : '';
+
+type OrHexBody<A extends string, B extends string> =
+  A extends `${infer Da extends HexDigit}${infer Ra}`
+    ? B extends `${infer Db extends HexDigit}${infer Rb}`
+      ? `${DigitOr<Da, Db>}${OrHexBody<Ra, Rb>}`
+      : ''
+    : '';
+
+type XorHexBody<A extends string, B extends string> =
+  A extends `${infer Da extends HexDigit}${infer Ra}`
+    ? B extends `${infer Db extends HexDigit}${infer Rb}`
+      ? `${DigitXor<Da, Db>}${XorHexBody<Ra, Rb>}`
+      : ''
+    : '';
+
+// Public bitwise hex ops (0x-prefixed), operating on 256-bit words
+// Efficient left pad to 64 by prefixing a 64-zero string and taking the last 64 chars
+type Z64 = '0000000000000000000000000000000000000000000000000000000000000000';
+type PadToU256Body<S extends string> = TakeLast<`${Z64}${NormalizeHex<S>}`, 64>;
+
+type IsSpecificString<S extends string> = string extends S ? false : true;
+
+export type NotHex<A extends string> = IsSpecificString<A> extends true
+  ? `0x${TakeLast<`${'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'}${NotHexBody<NormalizeHex<A>>}`, 64>}`
+  : never;
+// (AND/OR/XOR helpers intentionally not exported yet to keep type instantiation light)
+// Bitwise: AND/OR/XOR on hex strings (trimmed, right-aligned)
+type MapDigitsAnd<A extends HexDigit[], B extends HexDigit[], Acc extends HexDigit[] = []> =
+  A extends [infer Ha extends HexDigit, ...infer Ta extends HexDigit[]]
+    ? B extends [infer Hb extends HexDigit, ...infer Tb extends HexDigit[]]
+      ? MapDigitsAnd<Ta, Tb, [...Acc, DigitAnd<Ha, Hb>]>
+      : Acc
+    : Acc;
+
+type MapDigitsOr<A extends HexDigit[], B extends HexDigit[], Acc extends HexDigit[] = []> =
+  A extends [infer Ha extends HexDigit, ...infer Ta extends HexDigit[]]
+    ? B extends [infer Hb extends HexDigit, ...infer Tb extends HexDigit[]]
+      ? MapDigitsOr<Ta, Tb, [...Acc, DigitOr<Ha, Hb>]>
+      : Acc
+    : Acc;
+
+type MapDigitsXor<A extends HexDigit[], B extends HexDigit[], Acc extends HexDigit[] = []> =
+  A extends [infer Ha extends HexDigit, ...infer Ta extends HexDigit[]]
+    ? B extends [infer Hb extends HexDigit, ...infer Tb extends HexDigit[]]
+      ? MapDigitsXor<Ta, Tb, [...Acc, DigitXor<Ha, Hb>]>
+      : Acc
+    : Acc;
+
+type BitwisePrep<
+  A extends string,
+  B extends string
+> = HexStringToDigits<NormalizeHex<A>> extends infer AD extends HexDigit[]
+  ? HexStringToDigits<NormalizeHex<B>> extends infer BD extends HexDigit[]
+    ? MaxLength<AD, BD> extends infer ML extends number
+      ? PadHexLeft<NormalizeHex<A>, ML> extends infer PA extends string
+        ? PadHexLeft<NormalizeHex<B>, ML> extends infer PB extends string
+          ? [HexStringToDigits<PA>, HexStringToDigits<PB>]
+          : never
+        : never
+      : never
+    : never
+  : never;
+
+type DigitsToTrimmedHex<D extends HexDigit[]> = TrimLeadingZeros<HexDigitsToString<D>> extends infer S extends string
+  ? S extends ''
+    ? '0'
+    : S
+  : '0';
+
+export type AndHex<A extends string, B extends string> =
+  BitwisePrep<A, B> extends [infer AD extends HexDigit[], infer BD extends HexDigit[]]
+    ? `0x${DigitsToTrimmedHex<MapDigitsAnd<AD, BD>>}`
+    : '0x0';
+
+export type OrHex<A extends string, B extends string> =
+  BitwisePrep<A, B> extends [infer AD extends HexDigit[], infer BD extends HexDigit[]]
+    ? `0x${DigitsToTrimmedHex<MapDigitsOr<AD, BD>>}`
+    : '0x0';
+
+export type XorHex<A extends string, B extends string> =
+  BitwisePrep<A, B> extends [infer AD extends HexDigit[], infer BD extends HexDigit[]]
+    ? `0x${DigitsToTrimmedHex<MapDigitsXor<AD, BD>>}`
+    : '0x0';
+
+// BYTE helper (index 0..31 from most significant byte)
+type ByteIndexMap = {
+  '0': 0; '1': 1; '2': 2; '3': 3; '4': 4; '5': 5; '6': 6; '7': 7; '8': 8; '9': 9;
+  'A': 10; 'B': 11; 'C': 12; 'D': 13; 'E': 14; 'F': 15;
+  '10': 16; '11': 17; '12': 18; '13': 19; '14': 20; '15': 21; '16': 22; '17': 23; '18': 24; '19': 25;
+  '1A': 26; '1B': 27; '1C': 28; '1D': 29; '1E': 30; '1F': 31;
+};
+
+type ParseByteIndex<S extends string> = TrimLeadingZeros<NormalizeHex<S>> extends infer T extends string
+  ? T extends keyof ByteIndexMap
+    ? ByteIndexMap[T]
+    : never
+  : never;
+
+type HexBodyToBytes<S extends string, Acc extends string[] = []> =
+  S extends `${infer A extends HexDigit}${infer B extends HexDigit}${infer R}`
+    ? HexBodyToBytes<R, [...Acc, `${A}${B}`]>
+    : Acc;
+
+export type ByteAtHex<Index extends string, Word extends string> =
+  ParseByteIndex<Index> extends infer I extends number
+    ? HexBody<PadToU256Body<Word>> extends infer Body extends string
+      ? HexBodyToBytes<Body> extends infer Bytes extends string[]
+        ? At<Bytes, I> extends infer Pair extends string
+          ? `0x${TrimLeadingZeros<Pair>}`
+          : '0x00'
+        : '0x00'
+      : '0x00'
+    : '0x00';
+
+// SIGNEXTEND helpers (index 0 = least-significant byte)
+type IndexToPos<I extends number> =
+  I extends 0 ? 31 : I extends 1 ? 30 : I extends 2 ? 29 : I extends 3 ? 28 :
+  I extends 4 ? 27 : I extends 5 ? 26 : I extends 6 ? 25 : I extends 7 ? 24 :
+  I extends 8 ? 23 : I extends 9 ? 22 : I extends 10 ? 21 : I extends 11 ? 20 :
+  I extends 12 ? 19 : I extends 13 ? 18 : I extends 14 ? 17 : I extends 15 ? 16 :
+  I extends 16 ? 15 : I extends 17 ? 14 : I extends 18 ? 13 : I extends 19 ? 12 :
+  I extends 20 ? 11 : I extends 21 ? 10 : I extends 22 ? 9 : I extends 23 ? 8 :
+  I extends 24 ? 7 : I extends 25 ? 6 : I extends 26 ? 5 : I extends 27 ? 4 :
+  I extends 28 ? 3 : I extends 29 ? 2 : I extends 30 ? 1 : I extends 31 ? 0 : never;
+
+type HiNibble<B extends string> = B extends `${infer H extends HexDigit}${HexDigit}` ? H : '0';
+type IsHiBitSet<B extends string> = HiNibble<B> extends '8' | '9' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' ? true : false;
+
+type MapFill<Arr extends string[], V extends string, Acc extends string[] = []> =
+  Arr extends [any, ...infer T extends string[]]
+    ? MapFill<T, V, [...Acc, V]>
+    : Acc;
+
+export type SignExtendHex<Index extends string, Word extends string> =
+  ParseByteIndex<Index> extends infer I extends number
+    ? HexBody<PadToU256Body<Word>> extends infer Body extends string
+      ? HexBodyToBytes<Body> extends infer Bytes extends string[]
+        ? IndexToPos<I> extends infer Pos extends number
+          ? SplitAt<Bytes, Pos> extends [infer Upper extends string[], infer LowerAll extends string[]]
+            ? LowerAll extends [infer Boundary extends string, ...infer LowerTail extends string[]]
+              ? IsHiBitSet<Boundary & string> extends true
+                ? `0x${JoinHex<[...MapFill<Upper, 'FF'>, Boundary & string, ...LowerTail & string[]]>}`
+                : `0x${TrimLeadingZeros<JoinHex<[...MapFill<Upper, '00'>, Boundary & string, ...LowerTail & string[]]>>}`
+              : `0x${TrimLeadingZeros<JoinHex<Bytes>>}`
+            : `0x${TrimLeadingZeros<JoinHex<Bytes>>}`
+          : `0x${TrimLeadingZeros<JoinHex<Bytes>>}`
+        : '0x00'
+      : '0x00'
+    : '0x00';
+
+// Unsigned hex comparison helpers
+type DigitVal = {
+  '0': 0; '1': 1; '2': 2; '3': 3; '4': 4; '5': 5; '6': 6; '7': 7;
+  '8': 8; '9': 9; 'A': 10; 'B': 11; 'C': 12; 'D': 13; 'E': 14; 'F': 15;
+};
+
+type NumLT<A extends number, B extends number> =
+  BuildTuple<A> extends [...BuildTuple<B>, ...infer _]
+    ? false
+    : BuildTuple<B> extends [...BuildTuple<A>, ...infer _]
+      ? true
+      : false;
+
+type CmpDigits<A extends string, B extends string> =
+  A extends `${infer Da extends HexDigit}${infer Ra}`
+    ? B extends `${infer Db extends HexDigit}${infer Rb}`
+      ? Equal<Da, Db> extends true
+        ? CmpDigits<Ra, Rb>
+        : NumLT<DigitVal[Da], DigitVal[Db]>
+      : false
+    : false;
+
+type TrimHex<S extends string> = TrimLeadingZeros<NormalizeHex<S>> extends infer T extends string
+  ? T extends ''
+    ? '0'
+    : T
+  : never;
+
+type StrLen<S extends string> = StringLength<S>;
+
+export type HexLT<A extends string, B extends string> =
+  TrimHex<A> extends infer TA extends string
+    ? TrimHex<B> extends infer TB extends string
+      ? StrLen<TA> extends infer LA extends number
+        ? StrLen<TB> extends infer LB extends number
+          ? LA extends LB
+            ? CmpDigits<TA, TB>
+            : NumLT<LA, LB>
+          : false
+        : false
+      : false
+    : false;
+
+export type HexGT<A extends string, B extends string> =
+  HexLT<B, A>;
+
+// Subtraction via two's complement: A - B = A + (~B + 1) mod 2^256
+export type SubHex<A extends string, B extends string> = AddHex<A, AddHex<NotHex<B>, '0x1'>>;
+
+// Signed comparisons (two's complement semantics)
+type FirstDigit<S extends string> = S extends `${infer D extends HexDigit}${string}` ? D : '0';
+type IsNeg<S extends string> = FirstDigit<PadToU256Body<S>> extends '8' | '9' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' ? true : false;
+
+export type HexSLT<A extends string, B extends string> =
+  IsNeg<A> extends true
+    ? IsNeg<B> extends false
+      ? true
+      : HexLT<PadToU256Body<A>, PadToU256Body<B>>
+    : IsNeg<B> extends true
+    ? false
+    : HexLT<A, B>;
+
+export type HexSGT<A extends string, B extends string> = HexSLT<B, A>;
+
+// TEMP sanity checks (will be removed later)
+// Note: keep bitwise helpers lightweight; avoid extra compile-time tests here.
