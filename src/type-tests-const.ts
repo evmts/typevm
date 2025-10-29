@@ -78,6 +78,26 @@ export type T_const_16b_ret = Expect<Equal<R16['returnData'], '0x00'>>;
 export type T_const_17b_ret = Expect<Equal<R17['returnData'], '0x01'>>;
 
 // (Further opcode tests added incrementally in other files)
+// Sanity: NOT, AND, OR, XOR, BYTE produce ok status
+export const BCS1 = '0x600019F3' as const; // NOT 0
+export type RS1 = ExecuteEvm<typeof BCS1>;
+export type T_sanity_1 = Expect<Equal<RS1['status'], 'ok'>>;
+
+export const BCS2 = '0x60F0600F16F3' as const; // AND
+export type RS2 = ExecuteEvm<typeof BCS2>;
+export type T_sanity_2 = Expect<Equal<RS2['status'], 'ok'>>;
+
+export const BCS3 = '0x60F0600F17F3' as const; // OR
+export type RS3 = ExecuteEvm<typeof BCS3>;
+export type T_sanity_3 = Expect<Equal<RS3['status'], 'ok'>>;
+
+export const BCS4 = '0x60F0600F18F3' as const; // XOR
+export type RS4 = ExecuteEvm<typeof BCS4>;
+export type T_sanity_4 = Expect<Equal<RS4['status'], 'ok'>>;
+
+export const BCS5 = '0x7F00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFFF360001AF3' as const; // BYTE 0
+export type RS5 = ExecuteEvm<typeof BCS5>;
+export type T_sanity_5 = Expect<Equal<RS5['status'], 'ok'>>;
 
 
 // AND/OR/XOR basic cases
