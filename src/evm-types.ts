@@ -1,4 +1,4 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, SubHex } from './type-utils';
 
 // Opcode maps
 export type PushLenMap = {
@@ -107,7 +107,7 @@ export type ConcatAsHex<S extends string[]> = `0x${JoinHex<S>}`;
 type GasCostFor<Op extends string> =
   Op extends '00' // STOP
     ? 0
-    : Op extends '01' // ADD
+    : Op extends '01' | '03' // ADD, SUB
     ? 3
     : Op extends '19' // NOT
     ? 3
@@ -201,6 +201,12 @@ export type Exec<
     ? CanAfford<GasUsed, GasCostFor<'01'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
         ? Exec<Rest, Push<S2, AddHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '03' // SUB
+    ? CanAfford<GasUsed, GasCostFor<'01'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, SubHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '10' // LT

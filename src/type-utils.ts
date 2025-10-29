@@ -408,5 +408,8 @@ export type HexLT<A extends string, B extends string> =
 export type HexGT<A extends string, B extends string> =
   HexLT<B, A>;
 
+// Subtraction via two's complement: A - B = A + (~B + 1) mod 2^256
+export type SubHex<A extends string, B extends string> = AddHex<A, AddHex<NotHex<B>, '0x1'>>;
+
 // TEMP sanity checks (will be removed later)
 // Note: keep bitwise helpers lightweight; avoid extra compile-time tests here.

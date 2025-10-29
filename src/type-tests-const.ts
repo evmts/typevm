@@ -77,5 +77,10 @@ export type T_const_15_ret = Expect<Equal<R15['returnData'], '0x01'>>;
 export type T_const_16b_ret = Expect<Equal<R16['returnData'], '0x00'>>;
 export type T_const_17b_ret = Expect<Equal<R17['returnData'], '0x01'>>;
 
+// SUB: 5 - 3 = 2
+export const BC18 = '0x6005600303F3' as const;
+export type R18 = ExecuteEvm<typeof BC18>;
+export type T_const_18_ret = Expect<Equal<R18['returnData'], '0x2'>>;
+
 
 // AND/OR/XOR basic cases
