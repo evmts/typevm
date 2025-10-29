@@ -152,11 +152,11 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [x] `0x90–0x9F` SWAP1–SWAP16
 
 ### Logging (0xA0–0xA4)
-- [ ] `0xA0` LOG0
-- [ ] `0xA1` LOG1
-- [ ] `0xA2` LOG2
-- [ ] `0xA3` LOG3
-- [ ] `0xA4` LOG4
+- [x] `0xA0` LOG0 (memory ignored)
+- [x] `0xA1` LOG1 (memory ignored)
+- [x] `0xA2` LOG2 (memory ignored)
+- [x] `0xA3` LOG3 (memory ignored)
+- [x] `0xA4` LOG4 (memory ignored)
 
 ### System (0xF0–0xFF)
 - [ ] `0xF0` CREATE

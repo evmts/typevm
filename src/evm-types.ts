@@ -303,6 +303,10 @@ export type Exec<
         ? Exec<Rest, Push<S2, SarHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '58' // PC (no program counter model -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'58'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'58'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends 'A0' // LOG0 (pops offset, size; no-op, memory ignored)
     ? CanAfford<GasUsed, GasCostFor<'A0'>, GasLimit> extends true
       ? Stack extends [any, any, ...infer S2 extends string[]]
