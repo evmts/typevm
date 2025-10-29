@@ -66,7 +66,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 ### Stop & Arithmetic (0x00–0x1F)
 - [x] `0x00` STOP
 - [x] `0x01` ADD
-- [ ] `0x02` MUL
+- [x] `0x02` MUL
 - [x] `0x03` SUB
 - [x] `0x04` DIV
 - [ ] `0x05` SDIV
