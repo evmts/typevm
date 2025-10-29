@@ -239,3 +239,9 @@ export const BC_GASPRICE_1 = '0x3AF3' as const; // GASPRICE; RETURN
 export type R_GASPRICE_1 = ExecuteEvm<typeof BC_GASPRICE_1>;
 export type T_gasprice_1_status = Expect<Equal<R_GASPRICE_1['status'], 'ok'>>;
 export type T_gasprice_1_ret = Expect<Equal<R_GASPRICE_1['returnData'], '0x00'>>;
+
+// BLOBBASEFEE (0x49) - returns 0 (no blob fee model stub)
+export const BC_BLOBBASEFEE_1 = '0x49F3' as const; // BLOBBASEFEE; RETURN
+export type R_BLOBBASEFEE_1 = ExecuteEvm<typeof BC_BLOBBASEFEE_1>;
+export type T_blobbasefee_1_status = Expect<Equal<R_BLOBBASEFEE_1['status'], 'ok'>>;
+export type T_blobbasefee_1_ret = Expect<Equal<R_BLOBBASEFEE_1['returnData'], '0x00'>>;
