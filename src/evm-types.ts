@@ -1,4 +1,4 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex } from './type-utils';
 
 // Opcode maps
 export type PushLenMap = {
@@ -113,7 +113,7 @@ type GasCostFor<Op extends string> =
     ? 3
     : Op extends '0B' // SIGNEXTEND
     ? 3
-    : Op extends '10' | '11' | '12' | '13' | '14' | '15' | '16' | '17' | '18' | '1A' // LT, GT, SLT, SGT, EQ, ISZERO, AND, OR, XOR, BYTE
+    : Op extends '10' | '11' | '12' | '13' | '14' | '15' | '16' | '17' | '18' | '1A' | '1B' | '1C' | '1D' // + SHL/SHR/SAR
     ? 3
     : Op extends '16' | '17' | '18' | '19' // AND/OR/XOR/NOT
     ? 3
@@ -270,6 +270,24 @@ export type Exec<
       ? Stack extends [infer I extends string, infer W extends string, ...infer S2 extends string[]]
         ? Exec<Rest, Push<S2, ByteAtHex<I, W>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1A'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1A'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '1B' // SHL
+    ? CanAfford<GasUsed, GasCostFor<'1B'>, GasLimit> extends true
+      ? Stack extends [infer Shift extends string, infer Val extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, ShlHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1B'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1B'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '1C' // SHR
+    ? CanAfford<GasUsed, GasCostFor<'1C'>, GasLimit> extends true
+      ? Stack extends [infer Shift extends string, infer Val extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, ShrHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1C'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1C'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '1D' // SAR
+    ? CanAfford<GasUsed, GasCostFor<'1D'>, GasLimit> extends true
+      ? Stack extends [infer Shift extends string, infer Val extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, SarHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : IsPush<Op> extends true
     ? PushLen<Op> extends number

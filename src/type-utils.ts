@@ -220,6 +220,14 @@ type TakeLast<S extends string, N extends number, Acc extends string = '', Count
       ? TakeLast<Rest, N, `${Last}${Acc}`, [...Count, unknown]>
       : Acc;
 
+// Take first N characters from string
+type TakeFirst<S extends string, N extends number, Acc extends string = '', Count extends unknown[] = []> =
+  Count['length'] extends N
+    ? Acc
+    : S extends `${infer C}${infer Rest}`
+      ? TakeFirst<Rest, N, `${Acc}${C}`, [...Count, unknown]>
+      : Acc;
+
 // Pad to u256 (64 hex digits) and take last 64 (simulates overflow)
 export type WrapU256<S extends string> =
   StringLength<S> extends infer Len extends number
@@ -551,3 +559,122 @@ export type HexSGT<A extends string, B extends string> = HexSLT<B, A>;
 
 // TEMP sanity checks (will be removed later)
 // Note: keep bitwise helpers lightweight; avoid extra compile-time tests here.
+
+// Shift operations (SHL/SHR/SAR)
+type RepeatChar<C extends string, N extends number, Acc extends string[] = []> =
+  Acc['length'] extends N ? JoinHex<Acc> : RepeatChar<C, N, [...Acc, C]>;
+
+type Fill<N extends number, V, Acc extends V[] = []> = Acc['length'] extends N ? Acc : Fill<N, V, [...Acc, V]>;
+
+// Extract last byte (mod 256) of the shift count
+type LastByte<S extends string> = TakeLast<PadHexLeft<NormalizeHex<S>, 2>, 2>;
+type LB_H<S extends string> = LastByte<S> extends `${infer H extends HexDigit}${HexDigit}` ? H : '0';
+type LB_L<S extends string> = LastByte<S> extends `${HexDigit}${infer L extends HexDigit}` ? L : '0';
+
+type Times4Map = { 0: 0; 1: 4; 2: 8; 3: 12; 4: 16; 5: 20; 6: 24; 7: 28; 8: 32; 9: 36; 10: 40; 11: 44; 12: 48; 13: 52; 14: 56; 15: 60 };
+type Div4Map = { 0: 0; 1: 0; 2: 0; 3: 0; 4: 1; 5: 1; 6: 1; 7: 1; 8: 2; 9: 2; 10: 2; 11: 2; 12: 3; 13: 3; 14: 3; 15: 3 };
+type Mod4Map = { 0: 0; 1: 1; 2: 2; 3: 3; 4: 0; 5: 1; 6: 2; 7: 3; 8: 0; 9: 1; 10: 2; 11: 3; 12: 0; 13: 1; 14: 2; 15: 3 };
+
+type NumAdd<A extends number, B extends number> = [...BuildTuple<A>, ...BuildTuple<B>]['length'];
+
+type NibbleShift<S extends string> = NumAdd<Times4Map[DigitVal[LB_H<S>]], Div4Map[DigitVal[LB_L<S>]]>;
+type BitRemainder<S extends string> = Mod4Map[DigitVal[LB_L<S>]];
+
+// Nibble shifts across arrays of 64 hex digits
+type ShiftLeftNibblesStr<Body extends string, K extends number> = TakeLast<`${Body}${RepeatChar<'0', K>}`, 64>;
+type ShiftRightNibblesStr<Body extends string, K extends number, Pad extends HexDigit = '0'> = TakeFirst<`${RepeatChar<Pad, K>}${Body}`, 64>;
+
+// Bit remainder shifts across digits using bit tuples (most-significant bit first)
+type LeftShiftNibble1<Hi extends HexDigit, Lo extends HexDigit> = BitsToDigit<[
+  DigitBitsMap[Hi][1] & Bit, DigitBitsMap[Hi][2] & Bit, DigitBitsMap[Hi][3] & Bit, DigitBitsMap[Lo][0] & Bit
+]>;
+type LeftShiftNibble2<Hi extends HexDigit, Lo extends HexDigit> = BitsToDigit<[
+  DigitBitsMap[Hi][2] & Bit, DigitBitsMap[Hi][3] & Bit, DigitBitsMap[Lo][0] & Bit, DigitBitsMap[Lo][1] & Bit
+]>;
+type LeftShiftNibble3<Hi extends HexDigit, Lo extends HexDigit> = BitsToDigit<[
+  DigitBitsMap[Hi][3] & Bit, DigitBitsMap[Lo][0] & Bit, DigitBitsMap[Lo][1] & Bit, DigitBitsMap[Lo][2] & Bit
+]>;
+
+type RightShiftNibble1<Prev extends HexDigit, Curr extends HexDigit> = BitsToDigit<[
+  DigitBitsMap[Prev][3] & Bit, DigitBitsMap[Curr][0] & Bit, DigitBitsMap[Curr][1] & Bit, DigitBitsMap[Curr][2] & Bit
+]>;
+type RightShiftNibble2<Prev extends HexDigit, Curr extends HexDigit> = BitsToDigit<[
+  DigitBitsMap[Prev][2] & Bit, DigitBitsMap[Prev][3] & Bit, DigitBitsMap[Curr][0] & Bit, DigitBitsMap[Curr][1] & Bit
+]>;
+type RightShiftNibble3<Prev extends HexDigit, Curr extends HexDigit> = BitsToDigit<[
+  DigitBitsMap[Prev][1] & Bit, DigitBitsMap[Prev][2] & Bit, DigitBitsMap[Prev][3] & Bit, DigitBitsMap[Curr][0] & Bit
+]>;
+
+type LeftShiftRemainderDigits<Arr extends HexDigit[], R extends 0 | 1 | 2 | 3, Acc extends HexDigit[] = []> =
+  R extends 0
+    ? Arr
+    : Arr extends [infer H extends HexDigit, ...infer T extends HexDigit[]]
+      ? T extends [infer N extends HexDigit, ...any]
+        ? R extends 1
+          ? LeftShiftRemainderDigits<T, R, [...Acc, LeftShiftNibble1<H, N>]>
+          : R extends 2
+          ? LeftShiftRemainderDigits<T, R, [...Acc, LeftShiftNibble2<H, N>]>
+          : LeftShiftRemainderDigits<T, R, [...Acc, LeftShiftNibble3<H, N>]>
+        : R extends 1
+          ? [...Acc, LeftShiftNibble1<H, '0'>]
+          : R extends 2
+          ? [...Acc, LeftShiftNibble2<H, '0'>]
+          : [...Acc, LeftShiftNibble3<H, '0'>]
+      : Acc;
+
+type RightShiftRemainderDigits<Arr extends HexDigit[], R extends 0 | 1 | 2 | 3, Pad extends HexDigit = '0', Acc extends HexDigit[] = [], Prev extends HexDigit = Pad> =
+  R extends 0
+    ? Arr
+    : Arr extends [infer H extends HexDigit, ...infer T extends HexDigit[]]
+      ? R extends 1
+        ? RightShiftRemainderDigits<T, R, Pad, [...Acc, RightShiftNibble1<Prev, H>], H>
+        : R extends 2
+        ? RightShiftRemainderDigits<T, R, Pad, [...Acc, RightShiftNibble2<Prev, H>], H>
+        : RightShiftRemainderDigits<T, R, Pad, [...Acc, RightShiftNibble3<Prev, H>], H>
+      : Acc;
+
+// Public shift APIs
+export type ShlHex<Shift extends string, Word extends string> =
+  NibbleShift<Shift> extends infer K extends number
+    ? BitRemainder<Shift> extends infer R extends 0 | 1 | 2 | 3
+      ? NumLT<K, 64> extends true
+        ? HexStringToDigits<ShiftLeftNibblesStr<PadToU256Body<Word>, K>> extends infer D2 extends HexDigit[]
+          ? LeftShiftRemainderDigits<D2, R> extends infer Out extends HexDigit[]
+            ? `0x${TrimLeadingZeros<HexDigitsToString<Out>>}`
+            : '0x0'
+          : '0x0'
+        : '0x0'
+      : '0x0'
+    : '0x0';
+
+export type ShrHex<Shift extends string, Word extends string> =
+  NibbleShift<Shift> extends infer K extends number
+    ? BitRemainder<Shift> extends infer R extends 0 | 1 | 2 | 3
+      ? NumLT<K, 64> extends true
+        ? HexStringToDigits<ShiftRightNibblesStr<PadToU256Body<Word>, K, '0'>> extends infer D2 extends HexDigit[]
+          ? RightShiftRemainderDigits<D2, R, '0'> extends infer Out extends HexDigit[]
+            ? `0x${TrimLeadingZeros<HexDigitsToString<Out>>}`
+            : '0x0'
+          : '0x0'
+        : '0x0'
+      : '0x0'
+    : '0x0';
+
+export type SarHex<Shift extends string, Word extends string> =
+  NibbleShift<Shift> extends infer K extends number
+    ? BitRemainder<Shift> extends infer R extends 0 | 1 | 2 | 3
+      ? NumLT<K, 64> extends true
+        ? IsNeg<Word> extends true
+          ? HexStringToDigits<ShiftRightNibblesStr<PadToU256Body<Word>, K, 'F'>> extends infer D2 extends HexDigit[]
+            ? RightShiftRemainderDigits<D2, R, 'F'> extends infer Out1 extends HexDigit[]
+              ? `0x${TrimLeadingZeros<HexDigitsToString<Out1>>}`
+              : '0x0'
+            : '0x0'
+          : HexStringToDigits<ShiftRightNibblesStr<PadToU256Body<Word>, K, '0'>> extends infer D3 extends HexDigit[]
+            ? RightShiftRemainderDigits<D3, R, '0'> extends infer Out0 extends HexDigit[]
+              ? `0x${TrimLeadingZeros<HexDigitsToString<Out0>>}`
+              : '0x0'
+            : '0x0'
+      : IsNeg<Word> extends true ? '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF' : '0x0'
+    : '0x0'
+  : '0x0';
