@@ -119,6 +119,8 @@ type GasCostFor<Op extends string> =
     ? 3
     : Op extends '38' // CODESIZE
     ? 3
+    : Op extends '3A' // GASPRICE
+    ? 3
     : Op extends '3D' | '3E' // RETURNDATASIZE, RETURNDATACOPY
     ? 3
     : Op extends '43' // NUMBER
@@ -186,6 +188,14 @@ export type Exec<
     : Op extends '59' // MSIZE (no memory model -> 0)
     ? CanAfford<GasUsed, GasCostFor<'59'>, GasLimit> extends true
       ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'59'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '38' // CODESIZE (no code model -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'38'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'38'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '3A' // GASPRICE (no gas price model -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'3A'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'3A'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '3D' // RETURNDATASIZE (no external call context -> 0)
     ? CanAfford<GasUsed, GasCostFor<'3D'>, GasLimit> extends true
@@ -316,6 +326,10 @@ export type Exec<
       ? Stack extends [infer Shift extends string, infer Val extends string, ...infer S2 extends string[]]
         ? Exec<Rest, Push<S2, SarHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '43' // NUMBER (no block context -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'43'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'43'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '46' // CHAINID (no chain context -> 0)
     ? CanAfford<GasUsed, GasCostFor<'46'>, GasLimit> extends true

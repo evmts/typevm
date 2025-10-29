@@ -103,9 +103,9 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x35` CALLDATALOAD
 - [ ] `0x36` CALLDATASIZE
 - [ ] `0x37` CALLDATACOPY
-- [ ] `0x38` CODESIZE
+- [x] `0x38` CODESIZE (returns 0: stub)
 - [ ] `0x39` CODECOPY
-- [ ] `0x3A` GASPRICE
+- [x] `0x3A` GASPRICE (returns 0: stub)
 - [ ] `0x3B` EXTCODESIZE
 - [ ] `0x3C` EXTCODECOPY
 - [x] `0x3D` RETURNDATASIZE (returns 0: no external call context)
@@ -116,7 +116,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x40` BLOCKHASH
 - [ ] `0x41` COINBASE
 - [ ] `0x42` TIMESTAMP
-- [ ] `0x43` NUMBER
+- [x] `0x43` NUMBER (returns 0: stub)
 - [ ] `0x44` PREVRANDAO (formerly DIFFICULTY)
 - [ ] `0x45` GASLIMIT
 - [x] `0x46` CHAINID (returns 0: stub)

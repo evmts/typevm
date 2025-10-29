@@ -221,3 +221,21 @@ export const BC_CHAINID_1 = '0x46F3' as const; // CHAINID; RETURN
 export type R_CHAINID_1 = ExecuteEvm<typeof BC_CHAINID_1>;
 export type T_chainid_1_status = Expect<Equal<R_CHAINID_1['status'], 'ok'>>;
 export type T_chainid_1_ret = Expect<Equal<R_CHAINID_1['returnData'], '0x00'>>;
+
+// NUMBER (0x43) - returns 0 (no block context stub)
+export const BC_NUMBER_1 = '0x43F3' as const; // NUMBER; RETURN
+export type R_NUMBER_1 = ExecuteEvm<typeof BC_NUMBER_1>;
+export type T_number_1_status = Expect<Equal<R_NUMBER_1['status'], 'ok'>>;
+export type T_number_1_ret = Expect<Equal<R_NUMBER_1['returnData'], '0x00'>>;
+
+// CODESIZE (0x38) - returns 0 (no code model stub)
+export const BC_CODESIZE_1 = '0x38F3' as const; // CODESIZE; RETURN
+export type R_CODESIZE_1 = ExecuteEvm<typeof BC_CODESIZE_1>;
+export type T_codesize_1_status = Expect<Equal<R_CODESIZE_1['status'], 'ok'>>;
+export type T_codesize_1_ret = Expect<Equal<R_CODESIZE_1['returnData'], '0x00'>>;
+
+// GASPRICE (0x3A) - returns 0 (no gas price model stub)
+export const BC_GASPRICE_1 = '0x3AF3' as const; // GASPRICE; RETURN
+export type R_GASPRICE_1 = ExecuteEvm<typeof BC_GASPRICE_1>;
+export type T_gasprice_1_status = Expect<Equal<R_GASPRICE_1['status'], 'ok'>>;
+export type T_gasprice_1_ret = Expect<Equal<R_GASPRICE_1['returnData'], '0x00'>>;
