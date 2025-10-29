@@ -341,6 +341,10 @@ export type Exec<
     ? CanAfford<GasUsed, GasCostFor<'46'>, GasLimit> extends true
       ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'46'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '48' // BASEFEE (no fee model -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'48'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'48'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '49' // BLOBBASEFEE (no blob fee model -> 0)
     ? CanAfford<GasUsed, GasCostFor<'49'>, GasLimit> extends true
       ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'49'>>, GasLimit>

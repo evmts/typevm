@@ -115,7 +115,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 ### Block Information (0x40–0x49)
 - [ ] `0x40` BLOCKHASH
 - [ ] `0x41` COINBASE
-- [ ] `0x42` TIMESTAMP
+- [x] `0x42` TIMESTAMP (returns 0: stub)
 - [x] `0x43` NUMBER (returns 0: stub)
 - [ ] `0x44` PREVRANDAO (formerly DIFFICULTY)
 - [ ] `0x45` GASLIMIT

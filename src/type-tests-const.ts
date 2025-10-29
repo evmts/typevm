@@ -251,3 +251,15 @@ export const BC_GAS_1 = '0x5AF3' as const; // GAS; RETURN
 export type R_GAS_1 = ExecuteEvm<typeof BC_GAS_1>;
 export type T_gas_1_status = Expect<Equal<R_GAS_1['status'], 'ok'>>;
 export type T_gas_1_ret = Expect<Equal<R_GAS_1['returnData'], '0x00'>>;
+
+// TIMESTAMP (0x42) - returns 0 (no block context stub)
+export const BC_TIMESTAMP_1 = '0x42F3' as const; // TIMESTAMP; RETURN
+export type R_TIMESTAMP_1 = ExecuteEvm<typeof BC_TIMESTAMP_1>;
+export type T_timestamp_1_status = Expect<Equal<R_TIMESTAMP_1['status'], 'ok'>>;
+export type T_timestamp_1_ret = Expect<Equal<R_TIMESTAMP_1['returnData'], '0x00'>>;
+
+// BASEFEE (0x48) - returns 0 (no fee model stub)
+export const BC_BASEFEE_1 = '0x48F3' as const; // BASEFEE; RETURN
+export type R_BASEFEE_1 = ExecuteEvm<typeof BC_BASEFEE_1>;
+export type T_basefee_1_status = Expect<Equal<R_BASEFEE_1['status'], 'ok'>>;
+export type T_basefee_1_ret = Expect<Equal<R_BASEFEE_1['returnData'], '0x00'>>;
