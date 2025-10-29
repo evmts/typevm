@@ -121,6 +121,8 @@ type GasCostFor<Op extends string> =
     ? 3
     : Op extends '50' // POP
     ? 2
+    : Op extends '58' // PC
+    ? 3
     : Op extends '5B' // JUMPDEST
     ? 1
     : Op extends '59' // MSIZE
