@@ -1,4 +1,4 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, SubHex } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex } from './type-utils';
 
 // Opcode maps
 export type PushLenMap = {
@@ -111,7 +111,7 @@ type GasCostFor<Op extends string> =
     ? 3
     : Op extends '19' // NOT
     ? 3
-    : Op extends '10' | '11' | '14' | '15' // LT, GT, EQ, ISZERO
+    : Op extends '10' | '11' | '14' | '15' | '16' | '17' | '18' | '1A' // LT, GT, EQ, ISZERO, AND, OR, XOR, BYTE
     ? 3
     : Op extends '16' | '17' | '18' | '19' // AND/OR/XOR/NOT
     ? 3
@@ -221,6 +221,30 @@ export type Exec<
         ? Exec<Rest, Push<S2, HexGT<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'11'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'11'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '16' // AND
+    ? CanAfford<GasUsed, GasCostFor<'16'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, AndHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'16'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'16'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '17' // OR
+    ? CanAfford<GasUsed, GasCostFor<'17'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, OrHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'17'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'17'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '18' // XOR
+    ? CanAfford<GasUsed, GasCostFor<'18'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, XorHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'18'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'18'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '1A' // BYTE
+    ? CanAfford<GasUsed, GasCostFor<'1A'>, GasLimit> extends true
+      ? Stack extends [infer I extends string, infer W extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, ByteAtHex<I, W>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1A'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1A'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : IsPush<Op> extends true
     ? PushLen<Op> extends number
       ? CanAfford<GasUsed, GasCostFor<'60'>, GasLimit> extends true
@@ -306,3 +330,6 @@ export type T14 = Expect<Equal<ExecuteEvm<'0x60FF600101F3'>['returnData'], '0x10
 export type T15 = Expect<Equal<ExecuteEvm<'0x600A601401F3'>['returnData'], '0x1E'>>;
 // ADD with stack underflow
 export type T16 = Expect<Equal<ExecuteEvm<'0x600101F3'>['status'], 'error'>>;
+
+// SUB check: 5 - 3 = 2 using SWAP1
+// Additional opcode tests live in type-tests-const.ts
