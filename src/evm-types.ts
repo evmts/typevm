@@ -1,4 +1,4 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex } from './type-utils';
 
 // Opcode maps
 export type PushLenMap = {
@@ -109,6 +109,8 @@ type GasCostFor<Op extends string> =
     ? 0
     : Op extends '01' // ADD
     ? 3
+    : Op extends '16' | '17' | '18' | '19' // AND/OR/XOR/NOT
+    ? 3
     : Op extends '14' | '15' // EQ, ISZERO
     ? 3
     : Op extends '50' // POP
@@ -186,6 +188,12 @@ export type Exec<
       ? Stack extends [infer A extends string, ...infer S2 extends string[]]
         ? Exec<Rest, Push<S2, IsZeroHex<A> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'15'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'15'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '19' // NOT
+    ? CanAfford<GasUsed, GasCostFor<'19'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, NotHex<A>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'19'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'19'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '01' // ADD
     ? CanAfford<GasUsed, GasCostFor<'01'>, GasLimit> extends true

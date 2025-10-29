@@ -62,3 +62,24 @@ export type T_const_12_reason = Expect<Equal<R12['reason'], 'invalid'>>;
 export const BC13 = '0x61F3' as const; // PUSH2 <missing 2 bytes>
 export type R13 = ExecuteEvm<typeof BC13>;
 export type T_const_13_status = Expect<Equal<R13['status'], 'error'>>;
+
+// NOT: bitwise NOT over 256 bits
+// NOT 0x00 -> 0xFF..FF (64 hex digits)
+export const BC14 = '0x600019F3' as const; // PUSH1 00; NOT; RETURN
+export type R14 = ExecuteEvm<typeof BC14>;
+export type T_const_14_ret = Expect<
+  Equal<
+    R14['returnData'],
+    '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+  >
+>;
+
+// NOT 0xFF -> ...00 (low byte zero)
+export const BC15 = '0x60FF19F3' as const; // PUSH1 FF; NOT; RETURN
+export type R15 = ExecuteEvm<typeof BC15>;
+export type T_const_15_ret = Expect<
+  Equal<
+    R15['returnData'],
+    '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00'
+  >
+>;
