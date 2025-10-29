@@ -245,3 +245,9 @@ export const BC_BLOBBASEFEE_1 = '0x49F3' as const; // BLOBBASEFEE; RETURN
 export type R_BLOBBASEFEE_1 = ExecuteEvm<typeof BC_BLOBBASEFEE_1>;
 export type T_blobbasefee_1_status = Expect<Equal<R_BLOBBASEFEE_1['status'], 'ok'>>;
 export type T_blobbasefee_1_ret = Expect<Equal<R_BLOBBASEFEE_1['returnData'], '0x00'>>;
+
+// GAS (0x5A) - returns 0 (no gas-left calculation stub)
+export const BC_GAS_1 = '0x5AF3' as const; // GAS; RETURN
+export type R_GAS_1 = ExecuteEvm<typeof BC_GAS_1>;
+export type T_gas_1_status = Expect<Equal<R_GAS_1['status'], 'ok'>>;
+export type T_gas_1_ret = Expect<Equal<R_GAS_1['returnData'], '0x00'>>;

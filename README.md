@@ -122,7 +122,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [x] `0x46` CHAINID (returns 0: stub)
 - [ ] `0x47` SELFBALANCE
 - [ ] `0x48` BASEFEE
-- [ ] `0x49` BLOBBASEFEE
+- [x] `0x49` BLOBBASEFEE (returns 0: stub)
 
 ### Memory, Storage, and Flow (0x50–0x5F)
 - [x] `0x50` POP
@@ -135,7 +135,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x57` JUMPI
 - [x] `0x58` PC (returns 0: PC stub for now)
 - [x] `0x59` MSIZE
-- [ ] `0x5A` GAS
+- [x] `0x5A` GAS (returns 0: no gas-left calculation)
 - [x] `0x5B` JUMPDEST
 - [ ] `0x5C` TLOAD
 - [ ] `0x5D` TSTORE

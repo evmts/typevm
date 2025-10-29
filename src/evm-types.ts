@@ -123,6 +123,8 @@ type GasCostFor<Op extends string> =
     ? 3
     : Op extends '3D' | '3E' // RETURNDATASIZE, RETURNDATACOPY
     ? 3
+    : Op extends '42' // TIMESTAMP
+    ? 3
     : Op extends '43' // NUMBER
     ? 3
     : Op extends '46' // CHAINID
@@ -326,6 +328,10 @@ export type Exec<
       ? Stack extends [infer Shift extends string, infer Val extends string, ...infer S2 extends string[]]
         ? Exec<Rest, Push<S2, SarHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '42' // TIMESTAMP (no block context -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'42'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'42'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '43' // NUMBER (no block context -> 0)
     ? CanAfford<GasUsed, GasCostFor<'43'>, GasLimit> extends true
