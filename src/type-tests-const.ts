@@ -215,3 +215,9 @@ export const BC_LOG1_2 = '0x60016002A1F3' as const; // PUSH1 01; PUSH1 02; LOG1;
 export type R_LOG1_2 = ExecuteEvm<typeof BC_LOG1_2>;
 export type T_log1_2_status = Expect<Equal<R_LOG1_2['status'], 'error'>>;
 export type T_log1_2_reason = Expect<Equal<R_LOG1_2['reason'], 'stack_underflow'>>;
+
+// CHAINID (0x46) - returns 0 (no chain context stub)
+export const BC_CHAINID_1 = '0x46F3' as const; // CHAINID; RETURN
+export type R_CHAINID_1 = ExecuteEvm<typeof BC_CHAINID_1>;
+export type T_chainid_1_status = Expect<Equal<R_CHAINID_1['status'], 'ok'>>;
+export type T_chainid_1_ret = Expect<Equal<R_CHAINID_1['returnData'], '0x00'>>;

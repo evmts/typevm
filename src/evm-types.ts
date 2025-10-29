@@ -117,11 +117,23 @@ type GasCostFor<Op extends string> =
     ? 3
     : Op extends '16' | '17' | '18' | '19' // AND/OR/XOR/NOT
     ? 3
+    : Op extends '38' // CODESIZE
+    ? 3
     : Op extends '3D' | '3E' // RETURNDATASIZE, RETURNDATACOPY
+    ? 3
+    : Op extends '43' // NUMBER
+    ? 3
+    : Op extends '46' // CHAINID
+    ? 3
+    : Op extends '48' // BASEFEE
+    ? 3
+    : Op extends '49' // BLOBBASEFEE
     ? 3
     : Op extends '50' // POP
     ? 2
     : Op extends '58' // PC
+    ? 3
+    : Op extends '5A' // GAS
     ? 3
     : Op extends '5B' // JUMPDEST
     ? 1
@@ -304,6 +316,10 @@ export type Exec<
       ? Stack extends [infer Shift extends string, infer Val extends string, ...infer S2 extends string[]]
         ? Exec<Rest, Push<S2, SarHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '46' // CHAINID (no chain context -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'46'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'46'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '58' // PC (no program counter model -> 0)
     ? CanAfford<GasUsed, GasCostFor<'58'>, GasLimit> extends true

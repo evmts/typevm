@@ -119,7 +119,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x43` NUMBER
 - [ ] `0x44` PREVRANDAO (formerly DIFFICULTY)
 - [ ] `0x45` GASLIMIT
-- [ ] `0x46` CHAINID
+- [x] `0x46` CHAINID (returns 0: stub)
 - [ ] `0x47` SELFBALANCE
 - [ ] `0x48` BASEFEE
 - [ ] `0x49` BLOBBASEFEE
