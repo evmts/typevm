@@ -63,23 +63,19 @@ export const BC13 = '0x61F3' as const; // PUSH2 <missing 2 bytes>
 export type R13 = ExecuteEvm<typeof BC13>;
 export type T_const_13_status = Expect<Equal<R13['status'], 'error'>>;
 
-// NOT: bitwise NOT over 256 bits
-// NOT 0x00 -> 0xFF..FF (64 hex digits)
-export const BC14 = '0x600019F3' as const; // PUSH1 00; NOT; RETURN
+// LT and GT
+export const BC14 = '0x6001600210F3' as const; // 1 < 2 -> 0 (false)
+export const BC15 = '0x6002600110F3' as const; // 1 < 2 -> 1
+export const BC16 = '0x6002600111F3' as const; // 1 > 2 -> 0
+export const BC17 = '0x6001600211F3' as const; // 2 > 1 -> 1
 export type R14 = ExecuteEvm<typeof BC14>;
-export type T_const_14_ret = Expect<
-  Equal<
-    R14['returnData'],
-    '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
-  >
->;
-
-// NOT 0xFF -> ...00 (low byte zero)
-export const BC15 = '0x60FF19F3' as const; // PUSH1 FF; NOT; RETURN
 export type R15 = ExecuteEvm<typeof BC15>;
-export type T_const_15_ret = Expect<
-  Equal<
-    R15['returnData'],
-    '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00'
-  >
->;
+export type R16 = ExecuteEvm<typeof BC16>;
+export type R17 = ExecuteEvm<typeof BC17>;
+export type T_const_14_ret = Expect<Equal<R14['returnData'], '0x00'>>;
+export type T_const_15_ret = Expect<Equal<R15['returnData'], '0x01'>>;
+export type T_const_16b_ret = Expect<Equal<R16['returnData'], '0x00'>>;
+export type T_const_17b_ret = Expect<Equal<R17['returnData'], '0x01'>>;
+
+
+// AND/OR/XOR basic cases

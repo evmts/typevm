@@ -358,23 +358,55 @@ type PadToU256Body<S extends string> = TakeLast<`${Z64}${NormalizeHex<S>}`, 64>;
 type IsSpecificString<S extends string> = string extends S ? false : true;
 
 export type NotHex<A extends string> = IsSpecificString<A> extends true
-  ? `0x${WrapU256<NotHexBody<PadToU256Body<A>>>}`
+  ? `0x${TakeLast<`${'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'}${NotHexBody<NormalizeHex<A>>}`, 64>}`
   : never;
-export type AndHex<A extends string, B extends string> = IsSpecificString<A> extends true
-  ? IsSpecificString<B> extends true
-    ? `0x${WrapU256<AndHexBody<PadToU256Body<A>, PadToU256Body<B>>>}`
-    : never
+// (AND/OR/XOR helpers intentionally not exported yet to keep type instantiation light)
+
+// Unsigned hex comparison helpers
+type DigitVal = {
+  '0': 0; '1': 1; '2': 2; '3': 3; '4': 4; '5': 5; '6': 6; '7': 7;
+  '8': 8; '9': 9; 'A': 10; 'B': 11; 'C': 12; 'D': 13; 'E': 14; 'F': 15;
+};
+
+type NumLT<A extends number, B extends number> =
+  BuildTuple<A> extends [...BuildTuple<B>, ...infer _]
+    ? false
+    : BuildTuple<B> extends [...BuildTuple<A>, ...infer _]
+      ? true
+      : false;
+
+type CmpDigits<A extends string, B extends string> =
+  A extends `${infer Da extends HexDigit}${infer Ra}`
+    ? B extends `${infer Db extends HexDigit}${infer Rb}`
+      ? Equal<Da, Db> extends true
+        ? CmpDigits<Ra, Rb>
+        : NumLT<DigitVal[Da], DigitVal[Db]>
+      : false
+    : false;
+
+type TrimHex<S extends string> = TrimLeadingZeros<NormalizeHex<S>> extends infer T extends string
+  ? T extends ''
+    ? '0'
+    : T
   : never;
-export type OrHex<A extends string, B extends string> = IsSpecificString<A> extends true
-  ? IsSpecificString<B> extends true
-    ? `0x${WrapU256<OrHexBody<PadToU256Body<A>, PadToU256Body<B>>>}`
-    : never
-  : never;
-export type XorHex<A extends string, B extends string> = IsSpecificString<A> extends true
-  ? IsSpecificString<B> extends true
-    ? `0x${WrapU256<XorHexBody<PadToU256Body<A>, PadToU256Body<B>>>}`
-    : never
-  : never;
+
+type StrLen<S extends string> = StringLength<S>;
+
+export type HexLT<A extends string, B extends string> =
+  TrimHex<A> extends infer TA extends string
+    ? TrimHex<B> extends infer TB extends string
+      ? StrLen<TA> extends infer LA extends number
+        ? StrLen<TB> extends infer LB extends number
+          ? LA extends LB
+            ? CmpDigits<TA, TB>
+            : NumLT<LA, LB>
+          : false
+        : false
+      : false
+    : false;
+
+export type HexGT<A extends string, B extends string> =
+  HexLT<B, A>;
 
 // TEMP sanity checks (will be removed later)
 // Note: keep bitwise helpers lightweight; avoid extra compile-time tests here.
