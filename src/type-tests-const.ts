@@ -119,3 +119,86 @@ export type T_sanity_9 = Expect<Equal<RS9['status'], 'ok'>>;
 export const BCS10 = '0x60F060041DF3' as const; // SAR 4 of 0xF0 -> 0x0F
 export type RS10 = ExecuteEvm<typeof BCS10>;
 export type T_sanity_10 = Expect<Equal<RS10['status'], 'ok'>>;
+
+// PC (0x58) stub: returns 0x00
+export const BCS11 = '0x58F3' as const; // PC; RETURN
+export type RS11 = ExecuteEvm<typeof BCS11>;
+export type T_sanity_11_status = Expect<Equal<RS11['status'], 'ok'>>;
+export type T_sanity_11_ret = Expect<Equal<RS11['returnData'], '0x00'>>;
+
+// RETURNDATASIZE (0x3D) - returns 0 (no external call context)
+export const BC_RETURNDATASIZE_1 = '0x3DF3' as const; // RETURNDATASIZE; RETURN
+export type R_RETURNDATASIZE_1 = ExecuteEvm<typeof BC_RETURNDATASIZE_1>;
+export type T_returndatasize_1_status = Expect<Equal<R_RETURNDATASIZE_1['status'], 'ok'>>;
+export type T_returndatasize_1_ret = Expect<Equal<R_RETURNDATASIZE_1['returnData'], '0x00'>>;
+
+// RETURNDATASIZE basic return test
+export const BC_RETURNDATASIZE_2 = '0x3D3DF3' as const; // RETURNDATASIZE; RETURNDATASIZE; RETURN
+export type R_RETURNDATASIZE_2 = ExecuteEvm<typeof BC_RETURNDATASIZE_2>;
+export type T_returndatasize_2_status = Expect<Equal<R_RETURNDATASIZE_2['status'], 'ok'>>;
+export type T_returndatasize_2_ret = Expect<Equal<R_RETURNDATASIZE_2['returnData'], '0x00'>>;
+
+// RETURNDATACOPY (0x3E) - pops 3 items (destOffset, offset, size), continues execution (no-op)
+// Sanity: status 'ok' when stack has 3+ items
+export const BC_RETURNDATACOPY_1 = '0x60016002600360043EF3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; RETURNDATACOPY; RETURN
+export type R_RETURNDATACOPY_1 = ExecuteEvm<typeof BC_RETURNDATACOPY_1>;
+export type T_returndatacopy_1_status = Expect<Equal<R_RETURNDATACOPY_1['status'], 'ok'>>;
+export type T_returndatacopy_1_ret = Expect<Equal<R_RETURNDATACOPY_1['returnData'], '0x04'>>;
+
+// Error: status 'error' reason 'stack_underflow' with <3 items
+export const BC_RETURNDATACOPY_2 = '0x6001600260033EF3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; RETURNDATACOPY; RETURN (only 3 items, need destOffset too)
+export type R_RETURNDATACOPY_2 = ExecuteEvm<typeof BC_RETURNDATACOPY_2>;
+export type T_returndatacopy_2_status = Expect<Equal<R_RETURNDATACOPY_2['status'], 'error'>>;
+export type T_returndatacopy_2_reason = Expect<Equal<R_RETURNDATACOPY_2['reason'], 'stack_underflow'>>;
+
+// LOG2 (0xA2) - pops 4 items (offset, size, topic1, topic2), continues execution
+// Sanity: status 'ok' when stack has 4+ items
+export const BC_LOG2_1 = '0x60016002600360046001A2F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; PUSH1 01; LOG2; RETURN
+export type R_LOG2_1 = ExecuteEvm<typeof BC_LOG2_1>;
+export type T_log2_1_status = Expect<Equal<R_LOG2_1['status'], 'ok'>>;
+export type T_log2_1_ret = Expect<Equal<R_LOG2_1['returnData'], '0x01'>>;
+
+// Error: status 'error' reason 'stack_underflow' with <4 items
+export const BC_LOG2_2 = '0x600160026003A2F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; LOG2; RETURN (only 3 items)
+export type R_LOG2_2 = ExecuteEvm<typeof BC_LOG2_2>;
+export type T_log2_2_status = Expect<Equal<R_LOG2_2['status'], 'error'>>;
+export type T_log2_2_reason = Expect<Equal<R_LOG2_2['reason'], 'stack_underflow'>>;
+
+// LOG3 (0xA3) - pops 5 items (offset, size, topic1, topic2, topic3), continues execution
+// Sanity: status 'ok' when stack has 5+ items
+export const BC_LOG3_1 = '0x6001600260036004600560096001A3F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; PUSH1 05; PUSH1 09; PUSH1 01; LOG3; RETURN
+export type R_LOG3_1 = ExecuteEvm<typeof BC_LOG3_1>;
+export type T_log3_1_status = Expect<Equal<R_LOG3_1['status'], 'ok'>>;
+export type T_log3_1_ret = Expect<Equal<R_LOG3_1['returnData'], '0x01'>>;
+
+// Error: status 'error' reason 'stack_underflow' with <5 items
+export const BC_LOG3_2 = '0x60016002600360046001A3F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; PUSH1 01; LOG3; RETURN (only 4 items)
+export type R_LOG3_2 = ExecuteEvm<typeof BC_LOG3_2>;
+export type T_log3_2_status = Expect<Equal<R_LOG3_2['status'], 'error'>>;
+export type T_log3_2_reason = Expect<Equal<R_LOG3_2['reason'], 'stack_underflow'>>;
+
+// LOG4 (0xA4) - pops 6 items (offset, size, topic1, topic2, topic3, topic4), continues execution
+// Sanity: status 'ok' when stack has 6+ items
+export const BC_LOG4_1 = '0x600160026003600460056006600AA4F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; PUSH1 05; PUSH1 06; PUSH1 0A; LOG4; RETURN
+export type R_LOG4_1 = ExecuteEvm<typeof BC_LOG4_1>;
+export type T_log4_1_status = Expect<Equal<R_LOG4_1['status'], 'ok'>>;
+export type T_log4_1_ret = Expect<Equal<R_LOG4_1['returnData'], '0x0A'>>;
+
+// Error: status 'error' reason 'stack_underflow' with <6 items
+export const BC_LOG4_2 = '0x6001600260036004600560A4F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; PUSH1 05; LOG4; RETURN (only 5 items)
+export type R_LOG4_2 = ExecuteEvm<typeof BC_LOG4_2>;
+export type T_log4_2_status = Expect<Equal<R_LOG4_2['status'], 'error'>>;
+export type T_log4_2_reason = Expect<Equal<R_LOG4_2['reason'], 'stack_underflow'>>;
+
+// LOG1 (0xA1) - pops 3 items (offset, size, topic), continues execution
+// Sanity: status 'ok' when stack has 3+ items
+export const BC_LOG1_1 = '0x600160026003600460056001A1F3' as const; // PUSH1 01; PUSH1 02; PUSH1 03; PUSH1 04; PUSH1 05; PUSH1 01; LOG1; RETURN
+export type R_LOG1_1 = ExecuteEvm<typeof BC_LOG1_1>;
+export type T_log1_1_status = Expect<Equal<R_LOG1_1['status'], 'ok'>>;
+export type T_log1_1_ret = Expect<Equal<R_LOG1_1['returnData'], '0x01'>>;
+
+// Error: status 'error' reason 'stack_underflow' with <3 items
+export const BC_LOG1_2 = '0x60016002A1F3' as const; // PUSH1 01; PUSH1 02; LOG1; RETURN (only 2 items)
+export type R_LOG1_2 = ExecuteEvm<typeof BC_LOG1_2>;
+export type T_log1_2_status = Expect<Equal<R_LOG1_2['status'], 'error'>>;
+export type T_log1_2_reason = Expect<Equal<R_LOG1_2['reason'], 'stack_underflow'>>;

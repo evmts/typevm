@@ -2,10 +2,6 @@
 
 A TypeScript type-level EVM (Ethereum Virtual Machine) interpreter. Execute EVM bytecode entirely at compile time using TypeScript's type system!
 
-## What is this?
-
-TypeVM is an experimental EVM bytecode interpreter implemented entirely in TypeScript's type system. It parses and executes EVM bytecode at compile-time, returning results as TypeScript types. No runtime code execution - just pure type-level computation.
-
 ## Features
 
 - ✅ Type-level bytecode parsing and execution
@@ -63,27 +59,6 @@ type Result5 = ExecuteEvm<'0x600015F3'>;  // PUSH1 0x00, ISZERO, RETURN
 // }
 ```
 
-## Supported Opcodes
-
-### Stack Operations
-- `0x50` - **POP**: Remove top item from stack
-- `0x5F` - **PUSH0**: Push 0x00 onto stack
-- `0x60-0x7F` - **PUSH1-PUSH32**: Push N bytes onto stack
-- `0x80-0x8F` - **DUP1-DUP16**: Duplicate Nth stack item
-- `0x90-0x9F` - **SWAP1-SWAP16**: Swap top with Nth stack item
-
-### Arithmetic & Logic
-- `0x01` - **ADD**: Add top two stack items
-- `0x14` - **EQ**: Check equality of top two items
-- `0x15` - **ISZERO**: Check if top item is zero
-
-### Control Flow
-- `0x00` - **STOP**: Halt execution
-- `0x5B` - **JUMPDEST**: Jump destination (no-op)
-- `0xF3` - **RETURN**: Return with top of stack as return data
-- `0xFD` - **REVERT**: Revert execution
-- `0xFE` - **INVALID**: Invalid opcode error
-
 ## Opcode Checklist
 
 Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked items are implemented at the type level today.
@@ -133,8 +108,8 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x3A` GASPRICE
 - [ ] `0x3B` EXTCODESIZE
 - [ ] `0x3C` EXTCODECOPY
-- [ ] `0x3D` RETURNDATASIZE
-- [ ] `0x3E` RETURNDATACOPY
+- [x] `0x3D` RETURNDATASIZE (returns 0: no external call context)
+- [x] `0x3E` RETURNDATACOPY (memory ignored)
 - [ ] `0x3F` EXTCODEHASH
 
 ### Block Information (0x40–0x49)
@@ -158,7 +133,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x55` SSTORE
 - [ ] `0x56` JUMP
 - [ ] `0x57` JUMPI
-- [ ] `0x58` PC
+- [x] `0x58` PC (returns 0: PC stub for now)
 - [x] `0x59` MSIZE
 - [ ] `0x5A` GAS
 - [x] `0x5B` JUMPDEST
@@ -199,22 +174,18 @@ Notes:
 - Checklist reflects commonly recognized opcodes up through recent forks (e.g., PUSH0, TLOAD/TSTORE, MCOPY, BLOBBASEFEE). Some opcodes are context-dependent at runtime and are intentionally not implemented in this compile-time interpreter.
 - Unknown opcodes result in a type-level `unknown_opcode` error; unsupported stack effects produce `stack_underflow`.
 
-## How It Works
-
-TypeVM uses TypeScript's advanced type system features including:
-- Recursive conditional types for bytecode parsing
-- Tuple manipulation for stack operations
-- Template literal types for hex string processing
-- Mapped types for opcode definitions
-- Type-level arithmetic using tuple lengths
-
-The execution engine recursively processes bytecode bytes, maintaining a type-level stack and tracking execution state, all at compile time.
-
-### Gas Metering
+## Gas Metering
 
 - Every executed opcode consumes gas per a simple schedule for currently supported instructions (e.g., `ADD`/`EQ`/`ISZERO` cost 3, `POP` cost 2, `JUMPDEST` cost 1, `PUSH0` cost 2, `PUSH1–32`/`DUP`/`SWAP` cost 3). Control-flow halts like `STOP`, `RETURN`, `REVERT`, and `INVALID` are charged 0 in this model.
 - Default gas limit is `1000`. Provide a custom limit via the second generic parameter: `ExecuteEvm<'0x6001F3', 64>`.
 - Results expose `gasUsed` and `gasLimit` fields for introspection.
+
+## Limitations
+
+- Maximum 256 execution steps (prevents infinite type recursion)
+- Limited opcode support (no memory, storage, gas, or external calls)
+- TypeScript's type recursion limits apply
+- Compile times increase with bytecode complexity
 
 ## Installation
 
@@ -230,19 +201,13 @@ Run type checks to verify the type tests:
 npm run typecheck
 ```
 
-## Limitations
-
-- Maximum 256 execution steps (prevents infinite type recursion)
-- Limited opcode support (no memory, storage, gas, or external calls)
-- TypeScript's type recursion limits apply
-- Compile times increase with bytecode complexity
-
 ## Use Cases
 
-- 🎓 Educational: Learn EVM opcodes and type-level programming
-- 🔬 Research: Explore capabilities of TypeScript's type system
-- 🎨 Art: Create compile-time smart contract verification tools
-- 🧪 Experimentation: Test EVM bytecode behavior at type-level
+- The memes
+- Educational: Learn EVM opcodes and type-level programming
+- Research: Explore capabilities of TypeScript's type system
+- Art: Create compile-time smart contract verification tools
+- Experimentation: Test EVM bytecode behavior at type-level
 
 ## License
 
