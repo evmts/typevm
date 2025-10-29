@@ -121,7 +121,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x45` GASLIMIT
 - [x] `0x46` CHAINID (returns 0: stub)
 - [ ] `0x47` SELFBALANCE
-- [ ] `0x48` BASEFEE
+- [x] `0x48` BASEFEE (returns 0: stub)
 - [x] `0x49` BLOBBASEFEE (returns 0: stub)
 
 ### Memory, Storage, and Flow (0x50–0x5F)
