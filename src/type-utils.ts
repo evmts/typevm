@@ -498,5 +498,20 @@ export type HexGT<A extends string, B extends string> =
 // Subtraction via two's complement: A - B = A + (~B + 1) mod 2^256
 export type SubHex<A extends string, B extends string> = AddHex<A, AddHex<NotHex<B>, '0x1'>>;
 
+// Signed comparisons (two's complement semantics)
+type FirstDigit<S extends string> = S extends `${infer D extends HexDigit}${string}` ? D : '0';
+type IsNeg<S extends string> = FirstDigit<PadToU256Body<S>> extends '8' | '9' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' ? true : false;
+
+export type HexSLT<A extends string, B extends string> =
+  IsNeg<A> extends true
+    ? IsNeg<B> extends false
+      ? true
+      : HexLT<PadToU256Body<A>, PadToU256Body<B>>
+    : IsNeg<B> extends true
+    ? false
+    : HexLT<A, B>;
+
+export type HexSGT<A extends string, B extends string> = HexSLT<B, A>;
+
 // TEMP sanity checks (will be removed later)
 // Note: keep bitwise helpers lightweight; avoid extra compile-time tests here.

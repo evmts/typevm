@@ -1,4 +1,4 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex } from './type-utils';
 
 // Opcode maps
 export type PushLenMap = {
@@ -111,7 +111,7 @@ type GasCostFor<Op extends string> =
     ? 3
     : Op extends '19' // NOT
     ? 3
-    : Op extends '10' | '11' | '14' | '15' | '16' | '17' | '18' | '1A' // LT, GT, EQ, ISZERO, AND, OR, XOR, BYTE
+    : Op extends '10' | '11' | '12' | '13' | '14' | '15' | '16' | '17' | '18' | '1A' // LT, GT, SLT, SGT, EQ, ISZERO, AND, OR, XOR, BYTE
     ? 3
     : Op extends '16' | '17' | '18' | '19' // AND/OR/XOR/NOT
     ? 3
@@ -220,6 +220,18 @@ export type Exec<
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
         ? Exec<Rest, Push<S2, HexGT<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'11'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'11'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '12' // SLT
+    ? CanAfford<GasUsed, GasCostFor<'12'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, HexSLT<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'12'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'12'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '13' // SGT
+    ? CanAfford<GasUsed, GasCostFor<'13'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, HexSGT<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'13'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'13'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '16' // AND
     ? CanAfford<GasUsed, GasCostFor<'16'>, GasLimit> extends true
