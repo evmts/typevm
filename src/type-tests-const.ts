@@ -106,3 +106,16 @@ export type T_sanity_6 = Expect<Equal<RS6['status'], 'ok'>>;
 
 
 // AND/OR/XOR basic cases
+// SHL/SHR/SAR small checks
+export const BCS7 = '0x600160041BF3' as const; // 0x01 << 4 -> 0x10
+export type RS7 = ExecuteEvm<typeof BCS7>;
+export type T_sanity_7 = Expect<Equal<RS7['status'], 'ok'>>;
+
+
+export const BCS9 = '0x60F060041CF3' as const; // 0xF0 >> 4 -> 0x0F
+export type RS9 = ExecuteEvm<typeof BCS9>;
+export type T_sanity_9 = Expect<Equal<RS9['status'], 'ok'>>;
+
+export const BCS10 = '0x60F060041DF3' as const; // SAR 4 of 0xF0 -> 0x0F
+export type RS10 = ExecuteEvm<typeof BCS10>;
+export type T_sanity_10 = Expect<Equal<RS10['status'], 'ok'>>;

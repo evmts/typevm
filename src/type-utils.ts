@@ -638,11 +638,13 @@ export type ShlHex<Shift extends string, Word extends string> =
   NibbleShift<Shift> extends infer K extends number
     ? BitRemainder<Shift> extends infer R extends 0 | 1 | 2 | 3
       ? NumLT<K, 64> extends true
-        ? HexStringToDigits<ShiftLeftNibblesStr<PadToU256Body<Word>, K>> extends infer D2 extends HexDigit[]
-          ? LeftShiftRemainderDigits<D2, R> extends infer Out extends HexDigit[]
-            ? `0x${TrimLeadingZeros<HexDigitsToString<Out>>}`
+        ? R extends 0
+          ? `0x${TrimLeadingZeros<ShiftLeftNibblesStr<PadToU256Body<Word>, K>>}`
+          : HexStringToDigits<ShiftLeftNibblesStr<PadToU256Body<Word>, K>> extends infer D2 extends HexDigit[]
+            ? LeftShiftRemainderDigits<D2, R> extends infer Out extends HexDigit[]
+              ? `0x${TrimLeadingZeros<HexDigitsToString<Out>>}`
+              : '0x0'
             : '0x0'
-          : '0x0'
         : '0x0'
       : '0x0'
     : '0x0';
@@ -651,11 +653,13 @@ export type ShrHex<Shift extends string, Word extends string> =
   NibbleShift<Shift> extends infer K extends number
     ? BitRemainder<Shift> extends infer R extends 0 | 1 | 2 | 3
       ? NumLT<K, 64> extends true
-        ? HexStringToDigits<ShiftRightNibblesStr<PadToU256Body<Word>, K, '0'>> extends infer D2 extends HexDigit[]
-          ? RightShiftRemainderDigits<D2, R, '0'> extends infer Out extends HexDigit[]
-            ? `0x${TrimLeadingZeros<HexDigitsToString<Out>>}`
+        ? R extends 0
+          ? `0x${TrimLeadingZeros<ShiftRightNibblesStr<PadToU256Body<Word>, K, '0'>>}`
+          : HexStringToDigits<ShiftRightNibblesStr<PadToU256Body<Word>, K, '0'>> extends infer D2 extends HexDigit[]
+            ? RightShiftRemainderDigits<D2, R, '0'> extends infer Out extends HexDigit[]
+              ? `0x${TrimLeadingZeros<HexDigitsToString<Out>>}`
+              : '0x0'
             : '0x0'
-          : '0x0'
         : '0x0'
       : '0x0'
     : '0x0';
@@ -665,16 +669,20 @@ export type SarHex<Shift extends string, Word extends string> =
     ? BitRemainder<Shift> extends infer R extends 0 | 1 | 2 | 3
       ? NumLT<K, 64> extends true
         ? IsNeg<Word> extends true
-          ? HexStringToDigits<ShiftRightNibblesStr<PadToU256Body<Word>, K, 'F'>> extends infer D2 extends HexDigit[]
-            ? RightShiftRemainderDigits<D2, R, 'F'> extends infer Out1 extends HexDigit[]
-              ? `0x${TrimLeadingZeros<HexDigitsToString<Out1>>}`
+          ? R extends 0
+            ? `0x${TrimLeadingZeros<ShiftRightNibblesStr<PadToU256Body<Word>, K, 'F'>>}`
+            : HexStringToDigits<ShiftRightNibblesStr<PadToU256Body<Word>, K, 'F'>> extends infer D2 extends HexDigit[]
+              ? RightShiftRemainderDigits<D2, R, 'F'> extends infer Out1 extends HexDigit[]
+                ? `0x${TrimLeadingZeros<HexDigitsToString<Out1>>}`
+                : '0x0'
               : '0x0'
-            : '0x0'
-          : HexStringToDigits<ShiftRightNibblesStr<PadToU256Body<Word>, K, '0'>> extends infer D3 extends HexDigit[]
-            ? RightShiftRemainderDigits<D3, R, '0'> extends infer Out0 extends HexDigit[]
-              ? `0x${TrimLeadingZeros<HexDigitsToString<Out0>>}`
+          : R extends 0
+            ? `0x${TrimLeadingZeros<ShiftRightNibblesStr<PadToU256Body<Word>, K, '0'>>}`
+            : HexStringToDigits<ShiftRightNibblesStr<PadToU256Body<Word>, K, '0'>> extends infer D3 extends HexDigit[]
+              ? RightShiftRemainderDigits<D3, R, '0'> extends infer Out0 extends HexDigit[]
+                ? `0x${TrimLeadingZeros<HexDigitsToString<Out0>>}`
+                : '0x0'
               : '0x0'
-            : '0x0'
       : IsNeg<Word> extends true ? '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF' : '0x0'
     : '0x0'
   : '0x0';
