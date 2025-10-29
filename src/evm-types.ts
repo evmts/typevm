@@ -119,6 +119,8 @@ type GasCostFor<Op extends string> =
     ? 2
     : Op extends '5B' // JUMPDEST
     ? 1
+    : Op extends '59' // MSIZE
+    ? 2
     : Op extends '5F' // PUSH0
     ? 2
     : Op extends Keys<PushLenMap> // PUSH1-32
@@ -160,6 +162,10 @@ export type Exec<
     : Op extends '5F' // PUSH0
     ? CanAfford<GasUsed, GasCostFor<'5F'>, GasLimit> extends true
       ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'5F'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '59' // MSIZE (no memory model -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'59'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'59'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends 'FD' // REVERT
     ? CanAfford<GasUsed, GasCostFor<'FD'>, GasLimit> extends true
