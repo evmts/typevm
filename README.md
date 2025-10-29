@@ -112,9 +112,9 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [x] `0x18` XOR
 - [x] `0x19` NOT
 - [x] `0x1A` BYTE
-- [ ] `0x1B` SHL
-- [ ] `0x1C` SHR
-- [ ] `0x1D` SAR
+- [x] `0x1B` SHL
+- [x] `0x1C` SHR
+- [x] `0x1D` SAR
 
 ### SHA3 (0x20)
 - [ ] `0x20` KECCAK256 (SHA3)
