@@ -1,4 +1,4 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple } from './type-utils';
 
 // Opcode maps
 export type PushLenMap = {
@@ -73,6 +73,26 @@ export type ExecErr<Reason extends string, Stack extends string[]> = {
 };
 
 export type Result<Stack extends string[] = string[]> = ExecOk<Stack, any> | ExecErr<string, Stack>;
+// Gas-aware results
+export type ExecOkGas<
+  Stack extends string[],
+  Ret extends string | null,
+  GasUsed extends unknown[],
+  GasLimit extends number
+> = ExecOk<Stack, Ret> & {
+  gasUsed: GasUsed['length'];
+  gasLimit: GasLimit;
+};
+
+export type ExecErrGas<
+  Reason extends string,
+  Stack extends string[],
+  GasUsed extends unknown[],
+  GasLimit extends number
+> = ExecErr<Reason, Stack> & {
+  gasUsed: GasUsed['length'];
+  gasLimit: GasLimit;
+};
 
 // Take first N elements and also provide tail
 export type TakeAndDrop<
@@ -82,71 +102,139 @@ export type TakeAndDrop<
 
 export type ConcatAsHex<S extends string[]> = `0x${JoinHex<S>}`;
 
+// Gas schedule (approximate, configurable via generic gas limit only)
+// Values chosen to reflect typical EVM costs for implemented ops.
+type GasCostFor<Op extends string> =
+  Op extends '00' // STOP
+    ? 0
+    : Op extends '01' // ADD
+    ? 3
+    : Op extends '14' | '15' // EQ, ISZERO
+    ? 3
+    : Op extends '50' // POP
+    ? 2
+    : Op extends '5B' // JUMPDEST
+    ? 1
+    : Op extends '5F' // PUSH0
+    ? 2
+    : Op extends Keys<PushLenMap> // PUSH1-32
+    ? 3
+    : Op extends Keys<DupIndexMap> // DUP1-16
+    ? 3
+    : Op extends Keys<SwapIndexMap> // SWAP1-16
+    ? 3
+    : Op extends 'F3' | 'FD' | 'FE' // RETURN/REVERT/INVALID (ignoring dynamic memory costs)
+    ? 0
+    : 0;
+
+type Charge<GasUsed extends unknown[], Cost extends number> = [...GasUsed, ...BuildTuple<Cost>];
+type CanAfford<GasUsed extends unknown[], Cost extends number, Limit extends number> =
+  SplitAt<Charge<GasUsed, Cost>, Limit> extends [any, infer Remainder]
+    ? Remainder extends []
+      ? true
+      : false
+    : false;
+
 // Execution engine: consumes an array of hex bytes and a stack
 export type Exec<
   Bytes extends string[],
   Stack extends string[] = [],
-  Steps extends unknown[] = []
+  Steps extends unknown[] = [],
+  GasUsed extends unknown[] = [],
+  GasLimit extends number = 1000
 > = Steps['length'] extends 256
-  ? ExecErr<'step_overflow', Stack>
+  ? ExecErrGas<'step_overflow', Stack, GasUsed, GasLimit>
   : Bytes extends [infer Op extends string, ...infer Rest extends string[]]
   ? Op extends '00' // STOP (optional: treat as halt without return)
-    ? ExecOk<Stack, null>
+    ? CanAfford<GasUsed, GasCostFor<'00'>, GasLimit> extends true
+      ? ExecOkGas<Stack, null, Charge<GasUsed, GasCostFor<'00'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '5B' // JUMPDEST (no-op)
-    ? Exec<Rest, Stack, [...Steps, 1]>
+    ? CanAfford<GasUsed, GasCostFor<'5B'>, GasLimit> extends true
+      ? Exec<Rest, Stack, [...Steps, 1], Charge<GasUsed, GasCostFor<'5B'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '5F' // PUSH0
-    ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1]>
+    ? CanAfford<GasUsed, GasCostFor<'5F'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'5F'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends 'FD' // REVERT
-    ? ExecErr<'revert', Stack>
+    ? CanAfford<GasUsed, GasCostFor<'FD'>, GasLimit> extends true
+      ? ExecErrGas<'revert', Stack, Charge<GasUsed, GasCostFor<'FD'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends 'FE' // INVALID
-    ? ExecErr<'invalid', Stack>
+    ? CanAfford<GasUsed, GasCostFor<'FE'>, GasLimit> extends true
+      ? ExecErrGas<'invalid', Stack, Charge<GasUsed, GasCostFor<'FE'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends 'F3' // RETURN
-    ? ExecOk<Stack, Top<Stack> extends string ? Top<Stack> : null>
+    ? CanAfford<GasUsed, GasCostFor<'F3'>, GasLimit> extends true
+      ? ExecOkGas<Stack, Top<Stack> extends string ? Top<Stack> : null, Charge<GasUsed, GasCostFor<'F3'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '50' // POP
-    ? Stack extends [any, ...infer S2 extends string[]]
-      ? Exec<Rest, S2, [...Steps, 1]>
-      : ExecErr<'stack_underflow', Stack>
+    ? CanAfford<GasUsed, GasCostFor<'50'>, GasLimit> extends true
+      ? Stack extends [any, ...infer S2 extends string[]]
+        ? Exec<Rest, S2, [...Steps, 1], Charge<GasUsed, GasCostFor<'50'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'50'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '14' // EQ
-    ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-      ? Exec<Rest, Push<S2, HexEq<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1]>
-      : ExecErr<'stack_underflow', Stack>
+    ? CanAfford<GasUsed, GasCostFor<'14'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, HexEq<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'14'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'14'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '15' // ISZERO
-    ? Stack extends [infer A extends string, ...infer S2 extends string[]]
-      ? Exec<Rest, Push<S2, IsZeroHex<A> extends true ? '0x01' : '0x00'>, [...Steps, 1]>
-      : ExecErr<'stack_underflow', Stack>
+    ? CanAfford<GasUsed, GasCostFor<'15'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, IsZeroHex<A> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'15'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'15'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '01' // ADD
+    ? CanAfford<GasUsed, GasCostFor<'01'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, AddHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : IsPush<Op> extends true
     ? PushLen<Op> extends number
-      ? TakeAndDrop<Rest, PushLen<Op>> extends [infer ValBytes extends string[], infer Next extends string[]]
-        ? ValBytes['length'] extends PushLen<Op>
-          ? Exec<Next, Push<Stack, ConcatAsHex<ValBytes>>, [...Steps, 1]>
-          : ExecErr<'bytecode_truncated', Stack>
-        : ExecErr<'bytecode_truncated', Stack>
-      : ExecErr<'invalid_push', Stack>
+      ? CanAfford<GasUsed, GasCostFor<'60'>, GasLimit> extends true
+        ? TakeAndDrop<Rest, PushLen<Op>> extends [infer ValBytes extends string[], infer Next extends string[]]
+          ? ValBytes['length'] extends PushLen<Op>
+            ? Exec<Next, Push<Stack, ConcatAsHex<ValBytes>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'60'>>, GasLimit>
+            : ExecErrGas<'bytecode_truncated', Stack, Charge<GasUsed, GasCostFor<'60'>>, GasLimit>
+          : ExecErrGas<'bytecode_truncated', Stack, Charge<GasUsed, GasCostFor<'60'>>, GasLimit>
+        : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+      : ExecErrGas<'invalid_push', Stack, GasUsed, GasLimit>
     : IsDup<Op> extends true
-    ? DupN<Op> extends infer N extends number
-      ? AtZeroBased<Stack, Dec<N>> extends infer V extends string | never
-        ? [V] extends [never]
-          ? ExecErr<'stack_underflow', Stack>
-          : Exec<Rest, Push<Stack, V>, [...Steps, 1]>
-        : ExecErr<'stack_underflow', Stack>
-      : ExecErr<'invalid_dup', Stack>
+    ? CanAfford<GasUsed, GasCostFor<'80'>, GasLimit> extends true
+      ? DupN<Op> extends infer N extends number
+        ? AtZeroBased<Stack, Dec<N>> extends infer V extends string | never
+          ? [V] extends [never]
+            ? ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
+            : Exec<Rest, Push<Stack, V>, [...Steps, 1], Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
+          : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
+        : ExecErrGas<'invalid_dup', Stack, Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : IsSwap<Op> extends true
-    ? SwapN<Op> extends infer N extends number
-      ? Stack extends [infer H extends string, ...infer T extends string[]]
-        ? SplitAt<T, Dec<N>> extends [infer Pre extends string[], infer Post extends string[]]
-          ? Post extends [infer Target extends string, ...infer PostRest extends string[]]
-            ? Exec<Rest, [Target, ...Pre, H, ...PostRest], [...Steps, 1]>
-            : ExecErr<'stack_underflow', Stack>
-          : ExecErr<'swap_failed', Stack>
-        : ExecErr<'stack_underflow', Stack>
-      : ExecErr<'invalid_swap', Stack>
-    : ExecErr<'unknown_opcode', Stack>
-  : ExecOk<Stack, null>;
+    ? CanAfford<GasUsed, GasCostFor<'90'>, GasLimit> extends true
+      ? SwapN<Op> extends infer N extends number
+        ? Stack extends [infer H extends string, ...infer T extends string[]]
+          ? SplitAt<T, Dec<N>> extends [infer Pre extends string[], infer Post extends string[]]
+            ? Post extends [infer Target extends string, ...infer PostRest extends string[]]
+              ? Exec<Rest, [Target, ...Pre, H, ...PostRest], [...Steps, 1], Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
+              : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
+            : ExecErrGas<'swap_failed', Stack, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
+          : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
+        : ExecErrGas<'invalid_swap', Stack, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : ExecErrGas<'unknown_opcode', Stack, GasUsed, GasLimit>
+  : ExecOkGas<Stack, null, GasUsed, GasLimit>;
 
 // No extra helpers needed for SWAP using SplitAt
 
 // Public API
-export type ExecuteEvm<Hex extends string> = Exec<HexToBytes<NormalizeHex<Hex>>>;
+export type ExecuteEvm<
+  Hex extends string,
+  GasLimit extends number = 1000
+> = Exec<HexToBytes<NormalizeHex<Hex>>, [], [], [], GasLimit>;
 
 // Type tests (compile-time only)
 export type T1 = Expect<Equal<ExecuteEvm<'0x60016002F3'>['status'], 'ok'>>;
@@ -180,3 +268,13 @@ export type T10 = Expect<Equal<ExecuteEvm<'0x5B6001F3'>['returnData'], '0x01'>>;
 // REVERT and INVALID produce error
 export type T11 = Expect<Equal<ExecuteEvm<'0xFDF3'>['status'], 'error'>>;
 export type T12 = Expect<Equal<ExecuteEvm<'0xFEF3'>['status'], 'error'>>;
+
+// ADD examples
+// PUSH1 0x05, PUSH1 0x03, ADD, RETURN => 5 + 3 = 8
+export type T13 = Expect<Equal<ExecuteEvm<'0x6005600301F3'>['returnData'], '0x8'>>;
+// PUSH1 0xFF, PUSH1 0x01, ADD, RETURN => 255 + 1 = 256 = 0x100
+export type T14 = Expect<Equal<ExecuteEvm<'0x60FF600101F3'>['returnData'], '0x100'>>;
+// PUSH1 0x0A, PUSH1 0x14, ADD, RETURN => 10 + 20 = 30 = 0x1E
+export type T15 = Expect<Equal<ExecuteEvm<'0x600A601401F3'>['returnData'], '0x1E'>>;
+// ADD with stack underflow
+export type T16 = Expect<Equal<ExecuteEvm<'0x600101F3'>['status'], 'error'>>;

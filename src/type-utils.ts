@@ -96,3 +96,166 @@ export type IsAllZeros<S extends string> = S extends ''
 export type IsZeroHex<S extends string> = IsAllZeros<HexBody<S>>;
 
 export type HexEq<A extends string, B extends string> = Equal<HexBody<A>, HexBody<B>>;
+
+// Hex arithmetic types
+export type HexDigit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+
+// Result of adding two hex digits: [carry (0 or 1), result digit]
+export type HexAddResult<C extends 0 | 1, R extends HexDigit> = [C, R];
+
+// Hex addition table (base 16)
+type HexAddTableRow = [
+  HexAddResult<0, '0'>, HexAddResult<0, '1'>, HexAddResult<0, '2'>, HexAddResult<0, '3'>,
+  HexAddResult<0, '4'>, HexAddResult<0, '5'>, HexAddResult<0, '6'>, HexAddResult<0, '7'>,
+  HexAddResult<0, '8'>, HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>,
+  HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>
+];
+
+export type HexAdditionTable = {
+  '0': HexAddTableRow;
+  '1': [HexAddResult<0, '1'>, HexAddResult<0, '2'>, HexAddResult<0, '3'>, HexAddResult<0, '4'>, HexAddResult<0, '5'>, HexAddResult<0, '6'>, HexAddResult<0, '7'>, HexAddResult<0, '8'>, HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>];
+  '2': [HexAddResult<0, '2'>, HexAddResult<0, '3'>, HexAddResult<0, '4'>, HexAddResult<0, '5'>, HexAddResult<0, '6'>, HexAddResult<0, '7'>, HexAddResult<0, '8'>, HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>];
+  '3': [HexAddResult<0, '3'>, HexAddResult<0, '4'>, HexAddResult<0, '5'>, HexAddResult<0, '6'>, HexAddResult<0, '7'>, HexAddResult<0, '8'>, HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>];
+  '4': [HexAddResult<0, '4'>, HexAddResult<0, '5'>, HexAddResult<0, '6'>, HexAddResult<0, '7'>, HexAddResult<0, '8'>, HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>];
+  '5': [HexAddResult<0, '5'>, HexAddResult<0, '6'>, HexAddResult<0, '7'>, HexAddResult<0, '8'>, HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>];
+  '6': [HexAddResult<0, '6'>, HexAddResult<0, '7'>, HexAddResult<0, '8'>, HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>];
+  '7': [HexAddResult<0, '7'>, HexAddResult<0, '8'>, HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>, HexAddResult<1, '6'>];
+  '8': [HexAddResult<0, '8'>, HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>, HexAddResult<1, '6'>, HexAddResult<1, '7'>];
+  '9': [HexAddResult<0, '9'>, HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>, HexAddResult<1, '6'>, HexAddResult<1, '7'>, HexAddResult<1, '8'>];
+  'A': [HexAddResult<0, 'A'>, HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>, HexAddResult<1, '6'>, HexAddResult<1, '7'>, HexAddResult<1, '8'>, HexAddResult<1, '9'>];
+  'B': [HexAddResult<0, 'B'>, HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>, HexAddResult<1, '6'>, HexAddResult<1, '7'>, HexAddResult<1, '8'>, HexAddResult<1, '9'>, HexAddResult<1, 'A'>];
+  'C': [HexAddResult<0, 'C'>, HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>, HexAddResult<1, '6'>, HexAddResult<1, '7'>, HexAddResult<1, '8'>, HexAddResult<1, '9'>, HexAddResult<1, 'A'>, HexAddResult<1, 'B'>];
+  'D': [HexAddResult<0, 'D'>, HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>, HexAddResult<1, '6'>, HexAddResult<1, '7'>, HexAddResult<1, '8'>, HexAddResult<1, '9'>, HexAddResult<1, 'A'>, HexAddResult<1, 'B'>, HexAddResult<1, 'C'>];
+  'E': [HexAddResult<0, 'E'>, HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>, HexAddResult<1, '6'>, HexAddResult<1, '7'>, HexAddResult<1, '8'>, HexAddResult<1, '9'>, HexAddResult<1, 'A'>, HexAddResult<1, 'B'>, HexAddResult<1, 'C'>, HexAddResult<1, 'D'>];
+  'F': [HexAddResult<0, 'F'>, HexAddResult<1, '0'>, HexAddResult<1, '1'>, HexAddResult<1, '2'>, HexAddResult<1, '3'>, HexAddResult<1, '4'>, HexAddResult<1, '5'>, HexAddResult<1, '6'>, HexAddResult<1, '7'>, HexAddResult<1, '8'>, HexAddResult<1, '9'>, HexAddResult<1, 'A'>, HexAddResult<1, 'B'>, HexAddResult<1, 'C'>, HexAddResult<1, 'D'>, HexAddResult<1, 'E'>];
+};
+
+// Map hex digit to index 0-15
+type HexToIndex = {
+  '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
+  '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15
+};
+
+// Look up addition result
+type LookupHexAdd<A extends HexDigit, B extends HexDigit> =
+  HexAdditionTable[A][HexToIndex[B]];
+
+// Add two hex digit strings with carry
+type AddHexDigitWithCarry<A extends HexDigit, B extends HexDigit, Carry extends 0 | 1> =
+  Carry extends 0
+    ? LookupHexAdd<A, B>
+    : LookupHexAdd<A, B> extends [infer C extends 0 | 1, infer R extends HexDigit]
+      ? C extends 0
+        ? LookupHexAdd<R, '1'>  // Add carry to result
+        : [1, R]  // Already has carry, keep it
+      : never;
+
+// Pad hex string to length with leading zeros
+type PadHexLeft<S extends string, TargetLen extends number, Acc extends unknown[] = []> =
+  Acc['length'] extends TargetLen
+    ? S
+    : S extends `${infer _}${infer Rest}`
+      ? Rest extends ''
+        ? PadHexLeft<`0${S}`, TargetLen, [...Acc, unknown]>
+        : PadHexLeft<S, TargetLen, [...Acc, unknown]>
+      : PadHexLeft<`0${S}`, TargetLen, [...Acc, unknown]>;
+
+// Split hex string into array of single hex digits
+type HexStringToDigits<S extends string, Acc extends HexDigit[] = []> =
+  S extends `${infer D extends HexDigit}${infer Rest}`
+    ? HexStringToDigits<Rest, [...Acc, D]>
+    : Acc;
+
+// Join hex digits back to string
+type HexDigitsToString<Digits extends HexDigit[]> =
+  Digits extends [infer H extends HexDigit, ...infer T extends HexDigit[]]
+    ? `${H}${HexDigitsToString<T>}`
+    : '';
+
+// Add two hex digit arrays from right to left with carry
+type AddHexDigitArrays<
+  A extends HexDigit[],
+  B extends HexDigit[],
+  Carry extends 0 | 1 = 0,
+  Acc extends HexDigit[] = []
+> = A extends [...infer RestA extends HexDigit[], infer LastA extends HexDigit]
+  ? B extends [...infer RestB extends HexDigit[], infer LastB extends HexDigit]
+    ? AddHexDigitWithCarry<LastA, LastB, Carry> extends [infer NewCarry extends 0 | 1, infer Result extends HexDigit]
+      ? AddHexDigitArrays<RestA, RestB, NewCarry, [Result, ...Acc]>
+      : never
+    : never
+  : Carry extends 1
+    ? ['1', ...Acc]  // Overflow carry
+    : Acc;
+
+// Remove leading zeros
+type TrimLeadingZeros<S extends string> =
+  S extends '0'
+    ? '0'
+    : S extends `0${infer Rest}`
+      ? Rest extends ''
+        ? '0'
+        : TrimLeadingZeros<Rest>
+      : S;
+
+// Get max length
+type MaxLength<A extends unknown[], B extends unknown[]> =
+  A['length'] extends B['length']
+    ? A['length']
+    : A extends [...B, ...unknown[]]
+      ? A['length']
+      : B['length'];
+
+// Helper to get string length as number
+type StringLength<S extends string, Acc extends unknown[] = []> =
+  S extends `${infer _}${infer Rest}`
+    ? StringLength<Rest, [...Acc, unknown]>
+    : Acc['length'];
+
+// Take last N characters from string
+type TakeLast<S extends string, N extends number, Acc extends string = '', Count extends unknown[] = []> =
+  Count['length'] extends N
+    ? Acc
+    : S extends `${infer Rest}${infer Last}`
+      ? TakeLast<Rest, N, `${Last}${Acc}`, [...Count, unknown]>
+      : Acc;
+
+// Pad to u256 (64 hex digits) and take last 64 (simulates overflow)
+export type WrapU256<S extends string> =
+  StringLength<S> extends infer Len extends number
+    ? Len extends 64
+      ? S
+      : Len extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 60 | 61 | 62 | 63
+        ? S  // Less than 64, no overflow
+        : TakeLast<S, 64>  // More than 64, take last 64
+    : never;
+
+// Main add function for hex strings (assumes normalized uppercase hex without 0x prefix)
+type AddHexRaw<A extends string, B extends string> =
+  A extends ''
+    ? B extends '' ? '00' : B
+    : B extends ''
+      ? A
+      : HexStringToDigits<A> extends infer ADigits extends HexDigit[]
+        ? HexStringToDigits<B> extends infer BDigits extends HexDigit[]
+          ? MaxLength<ADigits, BDigits> extends infer MaxLen extends number
+            ? PadHexLeft<A, MaxLen> extends infer PaddedA extends string
+              ? PadHexLeft<B, MaxLen> extends infer PaddedB extends string
+                ? HexStringToDigits<PaddedA> extends infer PaddedADigits extends HexDigit[]
+                  ? HexStringToDigits<PaddedB> extends infer PaddedBDigits extends HexDigit[]
+                    ? AddHexDigitArrays<PaddedADigits, PaddedBDigits> extends infer ResultDigits extends HexDigit[]
+                      ? HexDigitsToString<ResultDigits> extends infer ResultStr extends string
+                        ? TrimLeadingZeros<ResultStr>
+                        : never
+                      : never
+                    : never
+                  : never
+                : never
+              : never
+            : never
+          : never
+        : never;
+
+// Add two hex values with 0x prefix and wrap to u256
+export type AddHex<A extends string, B extends string> =
+  `0x${WrapU256<AddHexRaw<NormalizeHex<A>, NormalizeHex<B>>>}`;

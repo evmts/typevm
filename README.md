@@ -10,10 +10,11 @@ TypeVM is an experimental EVM bytecode interpreter implemented entirely in TypeS
 
 - ✅ Type-level bytecode parsing and execution
 - ✅ Stack operations (PUSH, POP, DUP, SWAP)
-- ✅ Arithmetic and logic (EQ, ISZERO)
+- ✅ Arithmetic and logic (ADD, EQ, ISZERO)
 - ✅ Control flow opcodes (STOP, RETURN, REVERT, INVALID, JUMPDEST)
 - ✅ Compile-time error detection (stack underflow, invalid opcodes, etc.)
 - ✅ Step limit protection (256 steps max)
+- ✅ Gas metering with configurable limit
 
 ## Example
 
@@ -72,6 +73,7 @@ type Result5 = ExecuteEvm<'0x600015F3'>;  // PUSH1 0x00, ISZERO, RETURN
 - `0x90-0x9F` - **SWAP1-SWAP16**: Swap top with Nth stack item
 
 ### Arithmetic & Logic
+- `0x01` - **ADD**: Add top two stack items
 - `0x14` - **EQ**: Check equality of top two items
 - `0x15` - **ISZERO**: Check if top item is zero
 
@@ -81,6 +83,121 @@ type Result5 = ExecuteEvm<'0x600015F3'>;  // PUSH1 0x00, ISZERO, RETURN
 - `0xF3` - **RETURN**: Return with top of stack as return data
 - `0xFD` - **REVERT**: Revert execution
 - `0xFE` - **INVALID**: Invalid opcode error
+
+## Opcode Checklist
+
+Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked items are implemented at the type level today.
+
+### Stop & Arithmetic (0x00–0x1F)
+- [x] `0x00` STOP
+- [x] `0x01` ADD
+- [ ] `0x02` MUL
+- [ ] `0x03` SUB
+- [ ] `0x04` DIV
+- [ ] `0x05` SDIV
+- [ ] `0x06` MOD
+- [ ] `0x07` SMOD
+- [ ] `0x08` ADDMOD
+- [ ] `0x09` MULMOD
+- [ ] `0x0A` EXP
+- [ ] `0x0B` SIGNEXTEND
+- [ ] `0x10` LT
+- [ ] `0x11` GT
+- [ ] `0x12` SLT
+- [ ] `0x13` SGT
+- [x] `0x14` EQ
+- [x] `0x15` ISZERO
+- [ ] `0x16` AND
+- [ ] `0x17` OR
+- [ ] `0x18` XOR
+- [ ] `0x19` NOT
+- [ ] `0x1A` BYTE
+- [ ] `0x1B` SHL
+- [ ] `0x1C` SHR
+- [ ] `0x1D` SAR
+
+### SHA3 (0x20)
+- [ ] `0x20` KECCAK256 (SHA3)
+
+### Environment and Code (0x30–0x3F)
+- [ ] `0x30` ADDRESS
+- [ ] `0x31` BALANCE
+- [ ] `0x32` ORIGIN
+- [ ] `0x33` CALLER
+- [ ] `0x34` CALLVALUE
+- [ ] `0x35` CALLDATALOAD
+- [ ] `0x36` CALLDATASIZE
+- [ ] `0x37` CALLDATACOPY
+- [ ] `0x38` CODESIZE
+- [ ] `0x39` CODECOPY
+- [ ] `0x3A` GASPRICE
+- [ ] `0x3B` EXTCODESIZE
+- [ ] `0x3C` EXTCODECOPY
+- [ ] `0x3D` RETURNDATASIZE
+- [ ] `0x3E` RETURNDATACOPY
+- [ ] `0x3F` EXTCODEHASH
+
+### Block Information (0x40–0x49)
+- [ ] `0x40` BLOCKHASH
+- [ ] `0x41` COINBASE
+- [ ] `0x42` TIMESTAMP
+- [ ] `0x43` NUMBER
+- [ ] `0x44` PREVRANDAO (formerly DIFFICULTY)
+- [ ] `0x45` GASLIMIT
+- [ ] `0x46` CHAINID
+- [ ] `0x47` SELFBALANCE
+- [ ] `0x48` BASEFEE
+- [ ] `0x49` BLOBBASEFEE
+
+### Memory, Storage, and Flow (0x50–0x5F)
+- [x] `0x50` POP
+- [ ] `0x51` MLOAD
+- [ ] `0x52` MSTORE
+- [ ] `0x53` MSTORE8
+- [ ] `0x54` SLOAD
+- [ ] `0x55` SSTORE
+- [ ] `0x56` JUMP
+- [ ] `0x57` JUMPI
+- [ ] `0x58` PC
+- [ ] `0x59` MSIZE
+- [ ] `0x5A` GAS
+- [x] `0x5B` JUMPDEST
+- [ ] `0x5C` TLOAD
+- [ ] `0x5D` TSTORE
+- [ ] `0x5E` MCOPY
+- [x] `0x5F` PUSH0
+
+### Push Operations (0x60–0x7F)
+- [x] `0x60–0x7F` PUSH1–PUSH32
+
+### Duplication Operations (0x80–0x8F)
+- [x] `0x80–0x8F` DUP1–DUP16
+
+### Exchange Operations (0x90–0x9F)
+- [x] `0x90–0x9F` SWAP1–SWAP16
+
+### Logging (0xA0–0xA4)
+- [ ] `0xA0` LOG0
+- [ ] `0xA1` LOG1
+- [ ] `0xA2` LOG2
+- [ ] `0xA3` LOG3
+- [ ] `0xA4` LOG4
+
+### System (0xF0–0xFF)
+- [ ] `0xF0` CREATE
+- [ ] `0xF1` CALL
+- [ ] `0xF2` CALLCODE
+- [x] `0xF3` RETURN
+- [ ] `0xF4` DELEGATECALL
+- [ ] `0xF5` CREATE2
+- [ ] `0xFA` STATICCALL
+- [x] `0xFD` REVERT
+- [x] `0xFE` INVALID
+- [ ] `0xFF` SELFDESTRUCT
+
+Notes:
+- Checklist reflects commonly recognized opcodes up through recent forks (e.g., PUSH0, TLOAD/TSTORE, MCOPY, BLOBBASEFEE). Some opcodes are context-dependent at runtime and are intentionally not implemented in this compile-time interpreter.
+- Unknown opcodes result in a type-level `unknown_opcode` error; unsupported stack effects produce `stack_underflow`.
 
 ## How It Works
 
@@ -92,6 +209,12 @@ TypeVM uses TypeScript's advanced type system features including:
 - Type-level arithmetic using tuple lengths
 
 The execution engine recursively processes bytecode bytes, maintaining a type-level stack and tracking execution state, all at compile time.
+
+### Gas Metering
+
+- Every executed opcode consumes gas per a simple schedule for currently supported instructions (e.g., `ADD`/`EQ`/`ISZERO` cost 3, `POP` cost 2, `JUMPDEST` cost 1, `PUSH0` cost 2, `PUSH1–32`/`DUP`/`SWAP` cost 3). Control-flow halts like `STOP`, `RETURN`, `REVERT`, and `INVALID` are charged 0 in this model.
+- Default gas limit is `1000`. Provide a custom limit via the second generic parameter: `ExecuteEvm<'0x6001F3', 64>`.
+- Results expose `gasUsed` and `gasLimit` fields for introspection.
 
 ## Installation
 
