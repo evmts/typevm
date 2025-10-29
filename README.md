@@ -100,7 +100,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x08` ADDMOD
 - [ ] `0x09` MULMOD
 - [ ] `0x0A` EXP
-- [ ] `0x0B` SIGNEXTEND
+- [x] `0x0B` SIGNEXTEND
 - [x] `0x10` LT
 - [x] `0x11` GT
 - [x] `0x12` SLT
