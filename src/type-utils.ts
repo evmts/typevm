@@ -686,3 +686,42 @@ export type SarHex<Shift extends string, Word extends string> =
       : IsNeg<Word> extends true ? '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF' : '0x0'
     : '0x0'
   : '0x0';
+
+// Modulo operation (A % B, returns 0 if B is zero)
+// Implements repeated subtraction at type level
+type ModuloHelper<
+  A extends string,
+  B extends string,
+  Counter extends unknown[] = []
+> = Counter['length'] extends 256
+  ? A // Safety limit: prevent infinite recursion
+  : IsZeroHex<B> extends true
+    ? '0x00' // Modulo by zero returns 0
+    : HexLT<A, B> extends true
+      ? A // A < B, so A % B = A
+      : ModuloHelper<SubHex<A, B>, B, [...Counter, unknown]>;
+
+export type ModHex<A extends string, B extends string> =
+  IsZeroHex<B> extends true
+    ? '0x00'
+    : ModuloHelper<NormalizeHex<A> extends '' ? '0x00' : `0x${NormalizeHex<A>}`, NormalizeHex<B> extends '' ? '0x00' : `0x${NormalizeHex<B>}`>;
+
+// Division operation (A / B, returns 0 if B is zero)
+// Implements repeated subtraction at type level
+type DivisionHelper<
+  A extends string,
+  B extends string,
+  Quotient extends string = '0x00',
+  Counter extends unknown[] = []
+> = Counter['length'] extends 256
+  ? Quotient // Safety limit: prevent infinite recursion
+  : IsZeroHex<B> extends true
+    ? '0x00' // Division by zero returns 0
+    : HexLT<A, B> extends true
+      ? Quotient // A < B, so A / B = Quotient (final result)
+      : DivisionHelper<SubHex<A, B>, B, AddHex<Quotient, '0x01'>, [...Counter, unknown]>;
+
+export type DivHex<A extends string, B extends string> =
+  IsZeroHex<B> extends true
+    ? '0x00'
+    : DivisionHelper<NormalizeHex<A> extends '' ? '0x00' : `0x${NormalizeHex<A>}`, NormalizeHex<B> extends '' ? '0x00' : `0x${NormalizeHex<B>}`>;

@@ -97,8 +97,8 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 ### Environment and Code (0x30–0x3F)
 - [ ] `0x30` ADDRESS
 - [ ] `0x31` BALANCE
-- [ ] `0x32` ORIGIN
-- [ ] `0x33` CALLER
+- [x] `0x32` ORIGIN (returns 0: stub)
+- [x] `0x33` CALLER (returns 0: stub)
 - [ ] `0x34` CALLVALUE
 - [ ] `0x35` CALLDATALOAD
 - [ ] `0x36` CALLDATASIZE
@@ -120,7 +120,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x44` PREVRANDAO (formerly DIFFICULTY)
 - [ ] `0x45` GASLIMIT
 - [x] `0x46` CHAINID (returns 0: stub)
-- [ ] `0x47` SELFBALANCE
+- [x] `0x47` SELFBALANCE (returns 0: stub)
 - [x] `0x48` BASEFEE (returns 0: stub)
 - [x] `0x49` BLOBBASEFEE (returns 0: stub)
 

@@ -263,3 +263,21 @@ export const BC_BASEFEE_1 = '0x48F3' as const; // BASEFEE; RETURN
 export type R_BASEFEE_1 = ExecuteEvm<typeof BC_BASEFEE_1>;
 export type T_basefee_1_status = Expect<Equal<R_BASEFEE_1['status'], 'ok'>>;
 export type T_basefee_1_ret = Expect<Equal<R_BASEFEE_1['returnData'], '0x00'>>;
+
+// SELFBALANCE (0x47) - returns 0 (no balance model stub)
+export const BC_SELFBALANCE_1 = '0x47F3' as const; // SELFBALANCE; RETURN
+export type R_SELFBALANCE_1 = ExecuteEvm<typeof BC_SELFBALANCE_1>;
+export type T_selfbalance_1_status = Expect<Equal<R_SELFBALANCE_1['status'], 'ok'>>;
+export type T_selfbalance_1_ret = Expect<Equal<R_SELFBALANCE_1['returnData'], '0x00'>>;
+
+// ORIGIN (0x32) - returns 0 (no transaction context stub)
+export const BC_ORIGIN_1 = '0x32F3' as const; // ORIGIN; RETURN
+export type R_ORIGIN_1 = ExecuteEvm<typeof BC_ORIGIN_1>;
+export type T_origin_1_status = Expect<Equal<R_ORIGIN_1['status'], 'ok'>>;
+export type T_origin_1_ret = Expect<Equal<R_ORIGIN_1['returnData'], '0x00'>>;
+
+// CALLER (0x33) - returns 0 (no message context stub)
+export const BC_CALLER_1 = '0x33F3' as const; // CALLER; RETURN
+export type R_CALLER_1 = ExecuteEvm<typeof BC_CALLER_1>;
+export type T_caller_1_status = Expect<Equal<R_CALLER_1['status'], 'ok'>>;
+export type T_caller_1_ret = Expect<Equal<R_CALLER_1['returnData'], '0x00'>>;
