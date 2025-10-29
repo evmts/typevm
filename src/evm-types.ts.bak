@@ -1,4 +1,4 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex, ModHex, DivHex } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex, ModHex, MulHex, DivHex } from './type-utils';
 
 // Opcode maps
 export type PushLenMap = {
@@ -265,6 +265,12 @@ export type Exec<
         ? Exec<Rest, Push<S2, AddHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
         : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+    : Op extends '02' // MUL
+    ? CanAfford<GasUsed, GasCostFor<'02'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, MulHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'02'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'02'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '03' // SUB
     ? CanAfford<GasUsed, GasCostFor<'01'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
@@ -353,14 +359,6 @@ export type Exec<
     ? CanAfford<GasUsed, GasCostFor<'30'>, GasLimit> extends true
       ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'30'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
-    : Op extends '32' // ORIGIN (no transaction context -> 0)
-    ? CanAfford<GasUsed, GasCostFor<'32'>, GasLimit> extends true
-      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'32'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
-    : Op extends '33' // CALLER (no message context -> 0)
-    ? CanAfford<GasUsed, GasCostFor<'33'>, GasLimit> extends true
-      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'33'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '34' // CALLVALUE (no message value -> 0)
     ? CanAfford<GasUsed, GasCostFor<'34'>, GasLimit> extends true
       ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'34'>>, GasLimit>
@@ -376,10 +374,6 @@ export type Exec<
     : Op extends '46' // CHAINID (no chain context -> 0)
     ? CanAfford<GasUsed, GasCostFor<'46'>, GasLimit> extends true
       ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'46'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
-    : Op extends '47' // SELFBALANCE (no balance model -> 0)
-    ? CanAfford<GasUsed, GasCostFor<'47'>, GasLimit> extends true
-      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'47'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
     : Op extends '48' // BASEFEE (no fee model -> 0)
     ? CanAfford<GasUsed, GasCostFor<'48'>, GasLimit> extends true
