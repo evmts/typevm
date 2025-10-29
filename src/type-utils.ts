@@ -449,6 +449,42 @@ export type ByteAtHex<Index extends string, Word extends string> =
       : '0x00'
     : '0x00';
 
+// SIGNEXTEND helpers (index 0 = least-significant byte)
+type IndexToPos<I extends number> =
+  I extends 0 ? 31 : I extends 1 ? 30 : I extends 2 ? 29 : I extends 3 ? 28 :
+  I extends 4 ? 27 : I extends 5 ? 26 : I extends 6 ? 25 : I extends 7 ? 24 :
+  I extends 8 ? 23 : I extends 9 ? 22 : I extends 10 ? 21 : I extends 11 ? 20 :
+  I extends 12 ? 19 : I extends 13 ? 18 : I extends 14 ? 17 : I extends 15 ? 16 :
+  I extends 16 ? 15 : I extends 17 ? 14 : I extends 18 ? 13 : I extends 19 ? 12 :
+  I extends 20 ? 11 : I extends 21 ? 10 : I extends 22 ? 9 : I extends 23 ? 8 :
+  I extends 24 ? 7 : I extends 25 ? 6 : I extends 26 ? 5 : I extends 27 ? 4 :
+  I extends 28 ? 3 : I extends 29 ? 2 : I extends 30 ? 1 : I extends 31 ? 0 : never;
+
+type HiNibble<B extends string> = B extends `${infer H extends HexDigit}${HexDigit}` ? H : '0';
+type IsHiBitSet<B extends string> = HiNibble<B> extends '8' | '9' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' ? true : false;
+
+type MapFill<Arr extends string[], V extends string, Acc extends string[] = []> =
+  Arr extends [any, ...infer T extends string[]]
+    ? MapFill<T, V, [...Acc, V]>
+    : Acc;
+
+export type SignExtendHex<Index extends string, Word extends string> =
+  ParseByteIndex<Index> extends infer I extends number
+    ? HexBody<PadToU256Body<Word>> extends infer Body extends string
+      ? HexBodyToBytes<Body> extends infer Bytes extends string[]
+        ? IndexToPos<I> extends infer Pos extends number
+          ? SplitAt<Bytes, Pos> extends [infer Upper extends string[], infer LowerAll extends string[]]
+            ? LowerAll extends [infer Boundary extends string, ...infer LowerTail extends string[]]
+              ? IsHiBitSet<Boundary & string> extends true
+                ? `0x${JoinHex<[...MapFill<Upper, 'FF'>, Boundary & string, ...LowerTail & string[]]>}`
+                : `0x${TrimLeadingZeros<JoinHex<[...MapFill<Upper, '00'>, Boundary & string, ...LowerTail & string[]]>>}`
+              : `0x${TrimLeadingZeros<JoinHex<Bytes>>}`
+            : `0x${TrimLeadingZeros<JoinHex<Bytes>>}`
+          : `0x${TrimLeadingZeros<JoinHex<Bytes>>}`
+        : '0x00'
+      : '0x00'
+    : '0x00';
+
 // Unsigned hex comparison helpers
 type DigitVal = {
   '0': 0; '1': 1; '2': 2; '3': 3; '4': 4; '5': 5; '6': 6; '7': 7;

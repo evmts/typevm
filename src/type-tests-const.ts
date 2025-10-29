@@ -99,5 +99,10 @@ export const BCS5 = '0x7F00112233445566778899AABBCCDDEEFF00112233445566778899AAB
 export type RS5 = ExecuteEvm<typeof BCS5>;
 export type T_sanity_5 = Expect<Equal<RS5['status'], 'ok'>>;
 
+// SIGNEXTEND basic cases
+export const BCS6 = '0x600060800BF3' as const; // signextend(0, 0x80) -> ...FF80
+export type RS6 = ExecuteEvm<typeof BCS6>;
+export type T_sanity_6 = Expect<Equal<RS6['status'], 'ok'>>;
+
 
 // AND/OR/XOR basic cases
