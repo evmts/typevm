@@ -281,3 +281,53 @@ export const BC_CALLER_1 = '0x33F3' as const; // CALLER; RETURN
 export type R_CALLER_1 = ExecuteEvm<typeof BC_CALLER_1>;
 export type T_caller_1_status = Expect<Equal<R_CALLER_1['status'], 'ok'>>;
 export type T_caller_1_ret = Expect<Equal<R_CALLER_1['returnData'], '0x00'>>;
+
+// ADDRESS (0x30) - returns 0x00 (no contract context stub)
+export const BC_ADDRESS_1 = '0x30F3' as const; // ADDRESS; RETURN
+export type R_ADDRESS_1 = ExecuteEvm<typeof BC_ADDRESS_1>;
+export type T_address_1_status = Expect<Equal<R_ADDRESS_1['status'], 'ok'>>;
+export type T_address_1_ret = Expect<Equal<R_ADDRESS_1['returnData'], '0x00'>>;
+
+// MUL (0x02) - multiplication operation
+// Test 1: 3 * 4 = 12 (0x03 * 0x04 = 0x0C)
+export const BC_MUL_1 = '0x6003600402F3' as const; // PUSH1 03; PUSH1 04; MUL; RETURN
+export type R_MUL_1 = ExecuteEvm<typeof BC_MUL_1>;
+export type T_mul_1_status = Expect<Equal<R_MUL_1['status'], 'ok'>>;
+export type T_mul_1_ret = Expect<Equal<R_MUL_1['returnData'], '0xC'>>;
+
+// Test 2: 0xFF * 2 = 510 (0x1FE)
+export const BC_MUL_2 = '0x60FF600202F3' as const; // PUSH1 FF; PUSH1 02; MUL; RETURN
+export type R_MUL_2 = ExecuteEvm<typeof BC_MUL_2>;
+export type T_mul_2_status = Expect<Equal<R_MUL_2['status'], 'ok'>>;
+export type T_mul_2_ret = Expect<Equal<R_MUL_2['returnData'], '0x1FE'>>;
+
+// Test 3: Stack underflow
+export const BC_MUL_3 = '0x600102F3' as const; // PUSH1 01; MUL; RETURN (only 1 item on stack)
+export type R_MUL_3 = ExecuteEvm<typeof BC_MUL_3>;
+export type T_mul_3_status = Expect<Equal<R_MUL_3['status'], 'error'>>;
+export type T_mul_3_reason = Expect<Equal<R_MUL_3['reason'], 'stack_underflow'>>;
+
+// DIV (0x04) - integer division operation
+// Test 1: 12 / 3 = 4 (0x0C / 0x03 = 0x04)
+export const BC_DIV_1 = '0x600C600304F3' as const; // PUSH1 0C; PUSH1 03; DIV; RETURN
+export type R_DIV_1 = ExecuteEvm<typeof BC_DIV_1>;
+export type T_div_1_status = Expect<Equal<R_DIV_1['status'], 'ok'>>;
+export type T_div_1_ret = Expect<Equal<R_DIV_1['returnData'], '0x4'>>;
+
+// Test 2: 10 / 3 = 3 (0x0A / 0x03 = 0x03)
+export const BC_DIV_2 = '0x600A600304F3' as const; // PUSH1 0A; PUSH1 03; DIV; RETURN
+export type R_DIV_2 = ExecuteEvm<typeof BC_DIV_2>;
+export type T_div_2_status = Expect<Equal<R_DIV_2['status'], 'ok'>>;
+export type T_div_2_ret = Expect<Equal<R_DIV_2['returnData'], '0x3'>>;
+
+// Test 3: 5 / 0 = 0 (division by zero)
+export const BC_DIV_3 = '0x6005600004F3' as const; // PUSH1 05; PUSH1 00; DIV; RETURN
+export type R_DIV_3 = ExecuteEvm<typeof BC_DIV_3>;
+export type T_div_3_status = Expect<Equal<R_DIV_3['status'], 'ok'>>;
+export type T_div_3_ret = Expect<Equal<R_DIV_3['returnData'], '0x00'>>;
+
+// Test 4: Stack underflow
+export const BC_DIV_4 = '0x600104F3' as const; // PUSH1 01; DIV; RETURN (only 1 item on stack)
+export type R_DIV_4 = ExecuteEvm<typeof BC_DIV_4>;
+export type T_div_4_status = Expect<Equal<R_DIV_4['status'], 'error'>>;
+export type T_div_4_reason = Expect<Equal<R_DIV_4['reason'], 'stack_underflow'>>;

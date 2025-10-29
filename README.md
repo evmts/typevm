@@ -68,9 +68,9 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [x] `0x01` ADD
 - [ ] `0x02` MUL
 - [x] `0x03` SUB
-- [ ] `0x04` DIV
+- [x] `0x04` DIV
 - [ ] `0x05` SDIV
-- [ ] `0x06` MOD
+- [x] `0x06` MOD
 - [ ] `0x07` SMOD
 - [ ] `0x08` ADDMOD
 - [ ] `0x09` MULMOD
@@ -95,7 +95,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [ ] `0x20` KECCAK256 (SHA3)
 
 ### Environment and Code (0x30–0x3F)
-- [ ] `0x30` ADDRESS
+- [x] `0x30` ADDRESS (returns 0x00: no contract context stub)
 - [ ] `0x31` BALANCE
 - [x] `0x32` ORIGIN (returns 0: stub)
 - [x] `0x33` CALLER (returns 0: stub)
