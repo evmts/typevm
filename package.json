@@ -8,5 +8,9 @@
   },
   "devDependencies": {
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "cryptoscript": "github:kyscott18/cryptoscript",
+    "hotscript": "^1.0.13"
   }
 }

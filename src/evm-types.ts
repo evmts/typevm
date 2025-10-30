@@ -1,4 +1,5 @@
-import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex } from './type-utils';
+import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex, ModHex, DivHex, ArrayLengthToHex } from './type-utils';
+import type { Keccak256 } from 'cryptoscript';
 
 // Opcode maps
 export type PushLenMap = {
@@ -59,6 +60,54 @@ export type AtZeroBased<
   N extends number
 > = At<S, N>;
 
+// EVM Execution Context
+export type EvmContext = {
+  // Transaction context
+  address: string;      // 0x30 ADDRESS - current contract address
+  origin: string;       // 0x32 ORIGIN - transaction sender
+  caller: string;       // 0x33 CALLER - message sender
+  callvalue: string;    // 0x34 CALLVALUE - message value
+  gasprice: string;     // 0x3A GASPRICE - transaction gas price
+
+  // Block context
+  timestamp: string;    // 0x42 TIMESTAMP - block timestamp
+  number: string;       // 0x43 NUMBER - block number
+  chainid: string;      // 0x46 CHAINID - chain ID
+  basefee: string;      // 0x48 BASEFEE - block base fee
+  blobbasefee: string;  // 0x49 BLOBBASEFEE - blob base fee
+  coinbase: string;     // 0x41 COINBASE - block beneficiary
+  gaslimit: string;     // 0x45 GASLIMIT - block gas limit
+  difficulty: string;   // 0x44 PREVRANDAO/DIFFICULTY
+
+  // Input data
+  calldata: string[];   // Input bytes for CALLDATALOAD/SIZE/COPY
+  code: string[];       // Contract bytecode for CODESIZE/CODECOPY
+  returndata: string[]; // Return data from last external call
+
+  // Account state
+  selfbalance: string;  // 0x47 SELFBALANCE - address(this).balance
+};
+
+export type DefaultContext = {
+  address: '0x00';
+  origin: '0x00';
+  caller: '0x00';
+  callvalue: '0x00';
+  gasprice: '0x00';
+  timestamp: '0x00';
+  number: '0x00';
+  chainid: '0x00';
+  basefee: '0x00';
+  blobbasefee: '0x00';
+  coinbase: '0x00';
+  gaslimit: '0xFFFFFFFF';
+  difficulty: '0x00';
+  calldata: [];
+  code: [];
+  returndata: [];
+  selfbalance: '0x00';
+};
+
 // Return type
 export type ExecOk<Stack extends string[], Ret extends string | null> = {
   status: 'ok';
@@ -73,13 +122,18 @@ export type ExecErr<Reason extends string, Stack extends string[]> = {
 };
 
 export type Result<Stack extends string[] = string[]> = ExecOk<Stack, any> | ExecErr<string, Stack>;
-// Gas-aware results
+
+// Gas-aware results with Memory and Storage
 export type ExecOkGas<
   Stack extends string[],
+  Memory extends string[],
+  Storage extends Record<string, string>,
   Ret extends string | null,
   GasUsed extends unknown[],
   GasLimit extends number
 > = ExecOk<Stack, Ret> & {
+  memory: Memory;
+  storage: Storage;
   gasUsed: GasUsed['length'];
   gasLimit: GasLimit;
 };
@@ -87,9 +141,13 @@ export type ExecOkGas<
 export type ExecErrGas<
   Reason extends string,
   Stack extends string[],
+  Memory extends string[],
+  Storage extends Record<string, string>,
   GasUsed extends unknown[],
   GasLimit extends number
 > = ExecErr<Reason, Stack> & {
+  memory: Memory;
+  storage: Storage;
   gasUsed: GasUsed['length'];
   gasLimit: GasLimit;
 };
@@ -102,13 +160,53 @@ export type TakeAndDrop<
 
 export type ConcatAsHex<S extends string[]> = `0x${JoinHex<S>}`;
 
+// Helper to parse size parameter (supports small values 0-32)
+type ParseMemSize<S extends string> =
+  IsZeroHex<S> extends true
+    ? 0
+    : NormalizeHex<S> extends '01' ? 1
+    : NormalizeHex<S> extends '02' ? 2
+    : NormalizeHex<S> extends '03' ? 3
+    : NormalizeHex<S> extends '04' ? 4
+    : NormalizeHex<S> extends '05' ? 5
+    : NormalizeHex<S> extends '06' ? 6
+    : NormalizeHex<S> extends '07' ? 7
+    : NormalizeHex<S> extends '08' ? 8
+    : NormalizeHex<S> extends '09' ? 9
+    : NormalizeHex<S> extends '0A' ? 10
+    : NormalizeHex<S> extends '0B' ? 11
+    : NormalizeHex<S> extends '0C' ? 12
+    : NormalizeHex<S> extends '0D' ? 13
+    : NormalizeHex<S> extends '0E' ? 14
+    : NormalizeHex<S> extends '0F' ? 15
+    : NormalizeHex<S> extends '10' ? 16
+    : NormalizeHex<S> extends '11' ? 17
+    : NormalizeHex<S> extends '12' ? 18
+    : NormalizeHex<S> extends '13' ? 19
+    : NormalizeHex<S> extends '14' ? 20
+    : NormalizeHex<S> extends '15' ? 21
+    : NormalizeHex<S> extends '16' ? 22
+    : NormalizeHex<S> extends '17' ? 23
+    : NormalizeHex<S> extends '18' ? 24
+    : NormalizeHex<S> extends '19' ? 25
+    : NormalizeHex<S> extends '1A' ? 26
+    : NormalizeHex<S> extends '1B' ? 27
+    : NormalizeHex<S> extends '1C' ? 28
+    : NormalizeHex<S> extends '1D' ? 29
+    : NormalizeHex<S> extends '1E' ? 30
+    : NormalizeHex<S> extends '1F' ? 31
+    : NormalizeHex<S> extends '20' ? 32
+    : 0;
+
 // Gas schedule (approximate, configurable via generic gas limit only)
 // Values chosen to reflect typical EVM costs for implemented ops.
 type GasCostFor<Op extends string> =
   Op extends '00' // STOP
     ? 0
-    : Op extends '01' | '03' // ADD, SUB
+    : Op extends '01' | '02' | '03' | '04' | '06' // ADD, SUB, MOD
     ? 3
+    : Op extends '20' // SHA3/KECCAK256
+    ? 30
     : Op extends '19' // NOT
     ? 3
     : Op extends '0B' // SIGNEXTEND
@@ -117,8 +215,36 @@ type GasCostFor<Op extends string> =
     ? 3
     : Op extends '16' | '17' | '18' | '19' // AND/OR/XOR/NOT
     ? 3
+    : Op extends '30' // ADDRESS
+    ? 3
+    : Op extends '32' | '33' // ORIGIN, CALLER
+    ? 3
+    : Op extends '47' // SELFBALANCE
+    ? 3
+    : Op extends '34' // CALLVALUE
+    ? 3
+    : Op extends '38' // CODESIZE
+    ? 3
+    : Op extends '3A' // GASPRICE
+    ? 3
+    : Op extends '3D' | '3E' // RETURNDATASIZE, RETURNDATACOPY
+    ? 3
+    : Op extends '42' // TIMESTAMP
+    ? 3
+    : Op extends '43' // NUMBER
+    ? 3
+    : Op extends '46' // CHAINID
+    ? 3
+    : Op extends '48' // BASEFEE
+    ? 3
+    : Op extends '49' // BLOBBASEFEE
+    ? 3
     : Op extends '50' // POP
     ? 2
+    : Op extends '58' // PC
+    ? 3
+    : Op extends '5A' // GAS
+    ? 3
     : Op extends '5B' // JUMPDEST
     ? 1
     : Op extends '59' // MSIZE
@@ -130,6 +256,8 @@ type GasCostFor<Op extends string> =
     : Op extends Keys<DupIndexMap> // DUP1-16
     ? 3
     : Op extends Keys<SwapIndexMap> // SWAP1-16
+    ? 3
+    : Op extends 'A0' | 'A1' | 'A2' | 'A3' | 'A4' // LOG0-LOG4
     ? 3
     : Op extends 'F3' | 'FD' | 'FE' // RETURN/REVERT/INVALID (ignoring dynamic memory costs)
     ? 0
@@ -143,194 +271,318 @@ type CanAfford<GasUsed extends unknown[], Cost extends number, Limit extends num
       : false
     : false;
 
-// Execution engine: consumes an array of hex bytes and a stack
+// Execution engine: consumes an array of hex bytes with stateful execution
 export type Exec<
   Bytes extends string[],
   Stack extends string[] = [],
+  Memory extends string[] = [],
+  Storage extends Record<string, string> = {},
   Steps extends unknown[] = [],
   GasUsed extends unknown[] = [],
-  GasLimit extends number = 1000
+  GasLimit extends number = 1000,
+  Context extends EvmContext = DefaultContext
 > = Steps['length'] extends 256
-  ? ExecErrGas<'step_overflow', Stack, GasUsed, GasLimit>
+  ? ExecErrGas<'step_overflow', Stack, Memory, Storage, GasUsed, GasLimit>
   : Bytes extends [infer Op extends string, ...infer Rest extends string[]]
   ? Op extends '00' // STOP (optional: treat as halt without return)
     ? CanAfford<GasUsed, GasCostFor<'00'>, GasLimit> extends true
-      ? ExecOkGas<Stack, null, Charge<GasUsed, GasCostFor<'00'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+      ? ExecOkGas<Stack, Memory, Storage, null, Charge<GasUsed, GasCostFor<'00'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '20' // SHA3/KECCAK256
+    ? CanAfford<GasUsed, GasCostFor<'20'>, GasLimit> extends true
+      ? Stack extends [infer Offset extends string, infer Size extends string, ...infer S2 extends string[]]
+        ? IsZeroHex<Size> extends true
+          ? Exec<Rest, Push<S2, '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'20'>>, GasLimit, Context>
+          : TakeAndDrop<Memory, ParseMemSize<Size>> extends [infer MemSlice extends string[], any]
+            ? ConcatAsHex<MemSlice> extends infer InputHex extends `0x${string}`
+              ? Exec<Rest, Push<S2, Keccak256<InputHex>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'20'>>, GasLimit, Context>
+              : ExecErrGas<'sha3_failed', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'20'>>, GasLimit>
+            : ExecErrGas<'sha3_failed', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'20'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'20'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '5B' // JUMPDEST (no-op)
     ? CanAfford<GasUsed, GasCostFor<'5B'>, GasLimit> extends true
-      ? Exec<Rest, Stack, [...Steps, 1], Charge<GasUsed, GasCostFor<'5B'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+      ? Exec<Rest, Stack, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'5B'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '5F' // PUSH0
     ? CanAfford<GasUsed, GasCostFor<'5F'>, GasLimit> extends true
-      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'5F'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
-    : Op extends '59' // MSIZE (no memory model -> 0)
+      ? Exec<Rest, Push<Stack, '0x00'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'5F'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '59' // MSIZE
     ? CanAfford<GasUsed, GasCostFor<'59'>, GasLimit> extends true
-      ? Exec<Rest, Push<Stack, '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'59'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+      ? Exec<Rest, Push<Stack, ArrayLengthToHex<Memory>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'59'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '38' // CODESIZE
+    ? CanAfford<GasUsed, GasCostFor<'38'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, ArrayLengthToHex<Context['code']>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'38'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '3A' // GASPRICE
+    ? CanAfford<GasUsed, GasCostFor<'3A'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['gasprice']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'3A'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '3D' // RETURNDATASIZE
+    ? CanAfford<GasUsed, GasCostFor<'3D'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, ArrayLengthToHex<Context['returndata']>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'3D'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '3E' // RETURNDATACOPY (pops 3 items, no-op - memory ignored)
+    ? CanAfford<GasUsed, GasCostFor<'3E'>, GasLimit> extends true
+      ? Stack extends [infer DestOffset extends string, infer Offset extends string, infer Size extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, S2, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'3E'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'3E'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends 'FD' // REVERT
     ? CanAfford<GasUsed, GasCostFor<'FD'>, GasLimit> extends true
-      ? ExecErrGas<'revert', Stack, Charge<GasUsed, GasCostFor<'FD'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+      ? ExecErrGas<'revert', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'FD'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends 'FE' // INVALID
     ? CanAfford<GasUsed, GasCostFor<'FE'>, GasLimit> extends true
-      ? ExecErrGas<'invalid', Stack, Charge<GasUsed, GasCostFor<'FE'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+      ? ExecErrGas<'invalid', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'FE'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends 'F3' // RETURN
     ? CanAfford<GasUsed, GasCostFor<'F3'>, GasLimit> extends true
-      ? ExecOkGas<Stack, Top<Stack> extends string ? Top<Stack> : null, Charge<GasUsed, GasCostFor<'F3'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+      ? ExecOkGas<Stack, Memory, Storage, Top<Stack> extends string ? Top<Stack> : null, Charge<GasUsed, GasCostFor<'F3'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '50' // POP
     ? CanAfford<GasUsed, GasCostFor<'50'>, GasLimit> extends true
       ? Stack extends [any, ...infer S2 extends string[]]
-        ? Exec<Rest, S2, [...Steps, 1], Charge<GasUsed, GasCostFor<'50'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'50'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, S2, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'50'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'50'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '14' // EQ
     ? CanAfford<GasUsed, GasCostFor<'14'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, HexEq<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'14'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'14'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, HexEq<A, B> extends true ? '0x01' : '0x00'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'14'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'14'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '15' // ISZERO
     ? CanAfford<GasUsed, GasCostFor<'15'>, GasLimit> extends true
       ? Stack extends [infer A extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, IsZeroHex<A> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'15'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'15'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, IsZeroHex<A> extends true ? '0x01' : '0x00'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'15'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'15'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '19' // NOT
     ? CanAfford<GasUsed, GasCostFor<'19'>, GasLimit> extends true
       ? Stack extends [infer A extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, NotHex<A>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'19'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'19'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, NotHex<A>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'19'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'19'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '0B' // SIGNEXTEND
     ? CanAfford<GasUsed, GasCostFor<'0B'>, GasLimit> extends true
       ? Stack extends [infer Index extends string, infer Value extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, SignExtendHex<Index, Value>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'0B'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'0B'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, SignExtendHex<Index, Value>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'0B'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'0B'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '01' // ADD
     ? CanAfford<GasUsed, GasCostFor<'01'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, AddHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, AddHex<A, B>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'01'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '03' // SUB
     ? CanAfford<GasUsed, GasCostFor<'01'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, SubHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, SubHex<A, B>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'01'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'01'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '04' // DIV
+    ? CanAfford<GasUsed, GasCostFor<'04'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, DivHex<A, B>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'04'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'04'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '06' // MOD
+    ? CanAfford<GasUsed, GasCostFor<'06'>, GasLimit> extends true
+      ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
+        ? Exec<Rest, Push<S2, ModHex<A, B>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'06'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'06'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '10' // LT
     ? CanAfford<GasUsed, GasCostFor<'10'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, HexLT<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'10'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'10'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, HexLT<A, B> extends true ? '0x01' : '0x00'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'10'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'10'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '11' // GT
     ? CanAfford<GasUsed, GasCostFor<'11'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, HexGT<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'11'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'11'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, HexGT<A, B> extends true ? '0x01' : '0x00'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'11'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'11'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '12' // SLT
     ? CanAfford<GasUsed, GasCostFor<'12'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, HexSLT<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'12'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'12'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, HexSLT<A, B> extends true ? '0x01' : '0x00'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'12'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'12'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '13' // SGT
     ? CanAfford<GasUsed, GasCostFor<'13'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, HexSGT<A, B> extends true ? '0x01' : '0x00'>, [...Steps, 1], Charge<GasUsed, GasCostFor<'13'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'13'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, HexSGT<A, B> extends true ? '0x01' : '0x00'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'13'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'13'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '16' // AND
     ? CanAfford<GasUsed, GasCostFor<'16'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, AndHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'16'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'16'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, AndHex<A, B>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'16'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'16'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '17' // OR
     ? CanAfford<GasUsed, GasCostFor<'17'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, OrHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'17'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'17'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, OrHex<A, B>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'17'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'17'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '18' // XOR
     ? CanAfford<GasUsed, GasCostFor<'18'>, GasLimit> extends true
       ? Stack extends [infer A extends string, infer B extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, XorHex<A, B>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'18'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'18'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, XorHex<A, B>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'18'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'18'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '1A' // BYTE
     ? CanAfford<GasUsed, GasCostFor<'1A'>, GasLimit> extends true
       ? Stack extends [infer I extends string, infer W extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, ByteAtHex<I, W>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1A'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1A'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, ByteAtHex<I, W>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'1A'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'1A'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '1B' // SHL
     ? CanAfford<GasUsed, GasCostFor<'1B'>, GasLimit> extends true
       ? Stack extends [infer Shift extends string, infer Val extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, ShlHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1B'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1B'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, ShlHex<Shift, Val>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'1B'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'1B'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '1C' // SHR
     ? CanAfford<GasUsed, GasCostFor<'1C'>, GasLimit> extends true
       ? Stack extends [infer Shift extends string, infer Val extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, ShrHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1C'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1C'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, ShrHex<Shift, Val>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'1C'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'1C'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '1D' // SAR
     ? CanAfford<GasUsed, GasCostFor<'1D'>, GasLimit> extends true
       ? Stack extends [infer Shift extends string, infer Val extends string, ...infer S2 extends string[]]
-        ? Exec<Rest, Push<S2, SarHex<Shift, Val>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
-        : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+        ? Exec<Rest, Push<S2, SarHex<Shift, Val>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'1D'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'1D'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '30' // ADDRESS
+    ? CanAfford<GasUsed, GasCostFor<'30'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['address']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'30'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '32' // ORIGIN
+    ? CanAfford<GasUsed, GasCostFor<'32'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['origin']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'32'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '33' // CALLER
+    ? CanAfford<GasUsed, GasCostFor<'33'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['caller']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'33'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '34' // CALLVALUE
+    ? CanAfford<GasUsed, GasCostFor<'34'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['callvalue']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'34'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '42' // TIMESTAMP
+    ? CanAfford<GasUsed, GasCostFor<'42'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['timestamp']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'42'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '43' // NUMBER
+    ? CanAfford<GasUsed, GasCostFor<'43'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['number']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'43'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '46' // CHAINID
+    ? CanAfford<GasUsed, GasCostFor<'46'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['chainid']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'46'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '47' // SELFBALANCE
+    ? CanAfford<GasUsed, GasCostFor<'47'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['selfbalance']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'47'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '48' // BASEFEE
+    ? CanAfford<GasUsed, GasCostFor<'48'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['basefee']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'48'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '49' // BLOBBASEFEE
+    ? CanAfford<GasUsed, GasCostFor<'49'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, Context['blobbasefee']>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'49'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '58' // PC (no program counter model -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'58'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'58'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '5A' // GAS (no gas-left calculation -> 0)
+    ? CanAfford<GasUsed, GasCostFor<'5A'>, GasLimit> extends true
+      ? Exec<Rest, Push<Stack, '0x00'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'5A'>>, GasLimit, Context>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends 'A0' // LOG0 (pops offset, size; no-op, memory ignored)
+    ? CanAfford<GasUsed, GasCostFor<'A0'>, GasLimit> extends true
+      ? Stack extends [any, any, ...infer S2 extends string[]]
+        ? Exec<Rest, S2, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'A0'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'A0'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends 'A1' // LOG1 (pops offset, size, topic1; no-op, memory ignored)
+    ? CanAfford<GasUsed, GasCostFor<'A1'>, GasLimit> extends true
+      ? Stack extends [any, any, any, ...infer S3 extends string[]]
+        ? Exec<Rest, S3, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'A1'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'A1'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends 'A2' // LOG2 (pops offset, size, topic1, topic2; no-op, memory ignored)
+    ? CanAfford<GasUsed, GasCostFor<'A2'>, GasLimit> extends true
+      ? Stack extends [any, any, any, any, ...infer S4 extends string[]]
+        ? Exec<Rest, S4, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'A2'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'A2'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends 'A3' // LOG3 (pops offset, size, topic1, topic2, topic3; no-op, memory ignored)
+    ? CanAfford<GasUsed, GasCostFor<'A3'>, GasLimit> extends true
+      ? Stack extends [any, any, any, any, any, ...infer S5 extends string[]]
+        ? Exec<Rest, S5, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'A3'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'A3'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends 'A4' // LOG4 (pops offset, size, topic1, topic2, topic3, topic4; no-op, memory ignored)
+    ? CanAfford<GasUsed, GasCostFor<'A4'>, GasLimit> extends true
+      ? Stack extends [any, any, any, any, any, any, ...infer S6 extends string[]]
+        ? Exec<Rest, S6, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'A4'>>, GasLimit, Context>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'A4'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : IsPush<Op> extends true
     ? PushLen<Op> extends number
       ? CanAfford<GasUsed, GasCostFor<'60'>, GasLimit> extends true
         ? TakeAndDrop<Rest, PushLen<Op>> extends [infer ValBytes extends string[], infer Next extends string[]]
           ? ValBytes['length'] extends PushLen<Op>
-            ? Exec<Next, Push<Stack, ConcatAsHex<ValBytes>>, [...Steps, 1], Charge<GasUsed, GasCostFor<'60'>>, GasLimit>
-            : ExecErrGas<'bytecode_truncated', Stack, Charge<GasUsed, GasCostFor<'60'>>, GasLimit>
-          : ExecErrGas<'bytecode_truncated', Stack, Charge<GasUsed, GasCostFor<'60'>>, GasLimit>
-        : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
-      : ExecErrGas<'invalid_push', Stack, GasUsed, GasLimit>
+            ? Exec<Next, Push<Stack, ConcatAsHex<ValBytes>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'60'>>, GasLimit, Context>
+            : ExecErrGas<'bytecode_truncated', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'60'>>, GasLimit>
+          : ExecErrGas<'bytecode_truncated', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'60'>>, GasLimit>
+        : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+      : ExecErrGas<'invalid_push', Stack, Memory, Storage, GasUsed, GasLimit>
     : IsDup<Op> extends true
     ? CanAfford<GasUsed, GasCostFor<'80'>, GasLimit> extends true
       ? DupN<Op> extends infer N extends number
         ? AtZeroBased<Stack, Dec<N>> extends infer V extends string | never
           ? [V] extends [never]
-            ? ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
-            : Exec<Rest, Push<Stack, V>, [...Steps, 1], Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
-          : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
-        : ExecErrGas<'invalid_dup', Stack, Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
+            ? ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
+            : Exec<Rest, Push<Stack, V>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'80'>>, GasLimit, Context>
+          : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
+        : ExecErrGas<'invalid_dup', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'80'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : IsSwap<Op> extends true
     ? CanAfford<GasUsed, GasCostFor<'90'>, GasLimit> extends true
       ? SwapN<Op> extends infer N extends number
         ? Stack extends [infer H extends string, ...infer T extends string[]]
           ? SplitAt<T, Dec<N>> extends [infer Pre extends string[], infer Post extends string[]]
             ? Post extends [infer Target extends string, ...infer PostRest extends string[]]
-              ? Exec<Rest, [Target, ...Pre, H, ...PostRest], [...Steps, 1], Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
-              : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
-            : ExecErrGas<'swap_failed', Stack, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
-          : ExecErrGas<'stack_underflow', Stack, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
-        : ExecErrGas<'invalid_swap', Stack, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
-      : ExecErrGas<'out_of_gas', Stack, GasUsed, GasLimit>
-    : ExecErrGas<'unknown_opcode', Stack, GasUsed, GasLimit>
-  : ExecOkGas<Stack, null, GasUsed, GasLimit>;
+              ? Exec<Rest, [Target, ...Pre, H, ...PostRest], Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'90'>>, GasLimit, Context>
+              : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
+            : ExecErrGas<'swap_failed', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
+          : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
+        : ExecErrGas<'invalid_swap', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'90'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : ExecErrGas<'unknown_opcode', Stack, Memory, Storage, GasUsed, GasLimit>
+  : ExecOkGas<Stack, Memory, Storage, null, GasUsed, GasLimit>;
 
 // No extra helpers needed for SWAP using SplitAt
 
 // Public API
 export type ExecuteEvm<
   Hex extends string,
-  GasLimit extends number = 1000
-> = Exec<HexToBytes<NormalizeHex<Hex>>, [], [], [], GasLimit>;
+  GasLimit extends number = 1000,
+  Context extends EvmContext = DefaultContext
+> = Exec<HexToBytes<NormalizeHex<Hex>>, [], [], {}, [], [], GasLimit, Context>;
 
 // Type tests (compile-time only)
 export type T1 = Expect<Equal<ExecuteEvm<'0x60016002F3'>['status'], 'ok'>>;
