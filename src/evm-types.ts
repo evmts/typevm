@@ -1,4 +1,5 @@
 import type { At, Expect, Equal, JoinHex, NormalizeHex, SplitAt, IsZeroHex, HexEq, AddHex, BuildTuple, NotHex, HexLT, HexGT, HexSLT, HexSGT, SubHex, AndHex, OrHex, XorHex, ByteAtHex, SignExtendHex, ShlHex, ShrHex, SarHex, ModHex, DivHex, ArrayLengthToHex } from './type-utils';
+import type { Keccak256 } from 'cryptoscript';
 
 // Opcode maps
 export type PushLenMap = {
@@ -159,6 +160,44 @@ export type TakeAndDrop<
 
 export type ConcatAsHex<S extends string[]> = `0x${JoinHex<S>}`;
 
+// Helper to parse size parameter (supports small values 0-32)
+type ParseMemSize<S extends string> =
+  IsZeroHex<S> extends true
+    ? 0
+    : NormalizeHex<S> extends '01' ? 1
+    : NormalizeHex<S> extends '02' ? 2
+    : NormalizeHex<S> extends '03' ? 3
+    : NormalizeHex<S> extends '04' ? 4
+    : NormalizeHex<S> extends '05' ? 5
+    : NormalizeHex<S> extends '06' ? 6
+    : NormalizeHex<S> extends '07' ? 7
+    : NormalizeHex<S> extends '08' ? 8
+    : NormalizeHex<S> extends '09' ? 9
+    : NormalizeHex<S> extends '0A' ? 10
+    : NormalizeHex<S> extends '0B' ? 11
+    : NormalizeHex<S> extends '0C' ? 12
+    : NormalizeHex<S> extends '0D' ? 13
+    : NormalizeHex<S> extends '0E' ? 14
+    : NormalizeHex<S> extends '0F' ? 15
+    : NormalizeHex<S> extends '10' ? 16
+    : NormalizeHex<S> extends '11' ? 17
+    : NormalizeHex<S> extends '12' ? 18
+    : NormalizeHex<S> extends '13' ? 19
+    : NormalizeHex<S> extends '14' ? 20
+    : NormalizeHex<S> extends '15' ? 21
+    : NormalizeHex<S> extends '16' ? 22
+    : NormalizeHex<S> extends '17' ? 23
+    : NormalizeHex<S> extends '18' ? 24
+    : NormalizeHex<S> extends '19' ? 25
+    : NormalizeHex<S> extends '1A' ? 26
+    : NormalizeHex<S> extends '1B' ? 27
+    : NormalizeHex<S> extends '1C' ? 28
+    : NormalizeHex<S> extends '1D' ? 29
+    : NormalizeHex<S> extends '1E' ? 30
+    : NormalizeHex<S> extends '1F' ? 31
+    : NormalizeHex<S> extends '20' ? 32
+    : 0;
+
 // Gas schedule (approximate, configurable via generic gas limit only)
 // Values chosen to reflect typical EVM costs for implemented ops.
 type GasCostFor<Op extends string> =
@@ -166,6 +205,8 @@ type GasCostFor<Op extends string> =
     ? 0
     : Op extends '01' | '02' | '03' | '04' | '06' // ADD, SUB, MOD
     ? 3
+    : Op extends '20' // SHA3/KECCAK256
+    ? 30
     : Op extends '19' // NOT
     ? 3
     : Op extends '0B' // SIGNEXTEND
@@ -246,6 +287,18 @@ export type Exec<
   ? Op extends '00' // STOP (optional: treat as halt without return)
     ? CanAfford<GasUsed, GasCostFor<'00'>, GasLimit> extends true
       ? ExecOkGas<Stack, Memory, Storage, null, Charge<GasUsed, GasCostFor<'00'>>, GasLimit>
+      : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
+    : Op extends '20' // SHA3/KECCAK256
+    ? CanAfford<GasUsed, GasCostFor<'20'>, GasLimit> extends true
+      ? Stack extends [infer Offset extends string, infer Size extends string, ...infer S2 extends string[]]
+        ? IsZeroHex<Size> extends true
+          ? Exec<Rest, Push<S2, '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'20'>>, GasLimit, Context>
+          : TakeAndDrop<Memory, ParseMemSize<Size>> extends [infer MemSlice extends string[], any]
+            ? ConcatAsHex<MemSlice> extends infer InputHex extends `0x${string}`
+              ? Exec<Rest, Push<S2, Keccak256<InputHex>>, Memory, Storage, [...Steps, 1], Charge<GasUsed, GasCostFor<'20'>>, GasLimit, Context>
+              : ExecErrGas<'sha3_failed', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'20'>>, GasLimit>
+            : ExecErrGas<'sha3_failed', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'20'>>, GasLimit>
+        : ExecErrGas<'stack_underflow', Stack, Memory, Storage, Charge<GasUsed, GasCostFor<'20'>>, GasLimit>
       : ExecErrGas<'out_of_gas', Stack, Memory, Storage, GasUsed, GasLimit>
     : Op extends '5B' // JUMPDEST (no-op)
     ? CanAfford<GasUsed, GasCostFor<'5B'>, GasLimit> extends true

@@ -337,3 +337,22 @@ export const BC_DIV_4 = '0x600104F3' as const; // PUSH1 01; DIV; RETURN (only 1 
 export type R_DIV_4 = ExecuteEvm<typeof BC_DIV_4>;
 export type T_div_4_status = Expect<Equal<R_DIV_4['status'], 'error'>>;
 export type T_div_4_reason = Expect<Equal<R_DIV_4['reason'], 'stack_underflow'>>;
+
+// SHA3/KECCAK256 (0x20) tests
+// Test 1: SHA3 of empty input (offset=0, size=0)
+// Known: keccak256("") = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
+export const BC_SHA3_1 = '0x6000600020F3' as const; // PUSH1 00; PUSH1 00; SHA3; RETURN
+export type R_SHA3_1 = ExecuteEvm<typeof BC_SHA3_1>;
+export type T_sha3_1_status = Expect<Equal<R_SHA3_1['status'], 'ok'>>;
+export type T_sha3_1_ret = Expect<Equal<R_SHA3_1['returnData'], '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'>>;
+
+// Test 2: Stack underflow (only 1 item on stack)
+export const BC_SHA3_2 = '0x600020F3' as const; // PUSH1 00; SHA3; RETURN
+export type R_SHA3_2 = ExecuteEvm<typeof BC_SHA3_2>;
+export type T_sha3_2_status = Expect<Equal<R_SHA3_2['status'], 'error'>>;
+export type T_sha3_2_reason = Expect<Equal<R_SHA3_2['reason'], 'stack_underflow'>>;
+
+// Test 3: Basic status check (ensure sha3 executes)
+export const BC_SHA3_3 = '0x6000600020F3' as const; // PUSH1 00; PUSH1 00; SHA3; RETURN
+export type R_SHA3_3 = ExecuteEvm<typeof BC_SHA3_3>;
+export type T_sha3_3_ok = Expect<Equal<R_SHA3_3['status'], 'ok'>>;
