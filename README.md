@@ -6,8 +6,11 @@ A TypeScript type-level EVM (Ethereum Virtual Machine) interpreter. Execute EVM 
 
 - ✅ Type-level bytecode parsing and execution
 - ✅ Stack operations (PUSH, POP, DUP, SWAP)
-- ✅ Arithmetic and logic (ADD, EQ, ISZERO)
+- ✅ Arithmetic and logic (ADD, MUL, DIV, MOD, SUB, EQ, ISZERO, LT, GT, SLT, SGT)
+- ✅ Bitwise operations (AND, OR, XOR, NOT, BYTE, SHL, SHR, SAR, SIGNEXTEND)
+- ✅ Cryptographic operations (SHA3/KECCAK256 via [cryptoscript](https://github.com/kyscott18/cryptoscript))
 - ✅ Control flow opcodes (STOP, RETURN, REVERT, INVALID, JUMPDEST)
+- ✅ Memory, Storage, and Context infrastructure
 - ✅ Compile-time error detection (stack underflow, invalid opcodes, etc.)
 - ✅ Step limit protection (256 steps max)
 - ✅ Gas metering with configurable limit
@@ -57,6 +60,14 @@ type Result5 = ExecuteEvm<'0x600015F3'>;  // PUSH1 0x00, ISZERO, RETURN
 //   status: 'ok';
 //   returnData: '0x01';  // true (0 is zero)
 // }
+
+// SHA3/KECCAK256 example - hash of empty input
+type Result6 = ExecuteEvm<'0x6000600020F3'>;  // PUSH1 0x00, PUSH1 0x00, SHA3, RETURN
+// Result6 = {
+//   status: 'ok';
+//   returnData: '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470';
+//   // This is keccak256("") - the hash of empty input
+// }
 ```
 
 ## Opcode Checklist
@@ -92,7 +103,7 @@ Comprehensive list of EVM opcodes with implementation status for TypeVM. Checked
 - [x] `0x1D` SAR
 
 ### SHA3 (0x20)
-- [ ] `0x20` KECCAK256 (SHA3)
+- [x] `0x20` KECCAK256 (SHA3)
 
 ### Environment and Code (0x30–0x3F)
 - [x] `0x30` ADDRESS (returns 0x00: no contract context stub)
@@ -176,14 +187,21 @@ Notes:
 
 ## Gas Metering
 
-- Every executed opcode consumes gas per a simple schedule for currently supported instructions (e.g., `ADD`/`EQ`/`ISZERO` cost 3, `POP` cost 2, `JUMPDEST` cost 1, `PUSH0` cost 2, `PUSH1–32`/`DUP`/`SWAP` cost 3). Control-flow halts like `STOP`, `RETURN`, `REVERT`, and `INVALID` are charged 0 in this model.
+- Every executed opcode consumes gas per a simple schedule for currently supported instructions:
+  - Arithmetic/Logic: 3 gas (ADD, MUL, SUB, DIV, MOD, EQ, ISZERO, LT, GT, SLT, SGT, AND, OR, XOR, NOT, SIGNEXTEND, BYTE, SHL, SHR, SAR)
+  - SHA3/KECCAK256: 30 gas
+  - Stack ops: POP (2 gas), PUSH0 (2 gas), PUSH1-32/DUP/SWAP (3 gas)
+  - Control flow: JUMPDEST (1 gas), STOP/RETURN/REVERT/INVALID (0 gas)
+  - Context stubs: 3 gas (ADDRESS, ORIGIN, CALLER, etc.)
 - Default gas limit is `1000`. Provide a custom limit via the second generic parameter: `ExecuteEvm<'0x6001F3', 64>`.
 - Results expose `gasUsed` and `gasLimit` fields for introspection.
 
 ## Limitations
 
 - Maximum 256 execution steps (prevents infinite type recursion)
-- Limited opcode support (no memory, storage, gas, or external calls)
+- SHA3/KECCAK256 supports up to 256-bit inputs (cryptoscript library constraint)
+- Memory operations are basic (no dynamic expansion modeling)
+- No storage persistence or external calls
 - TypeScript's type recursion limits apply
 - Compile times increase with bytecode complexity
 
